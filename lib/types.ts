@@ -63,7 +63,8 @@ export interface ClientFile {
   id: string;
   client_id: string;
   name: string;
-  file_url: string;
+  drive_file_id: string;
+  file_url?: string | null;
   type: FileType;
   size_bytes?: number;
   created_at: string;
