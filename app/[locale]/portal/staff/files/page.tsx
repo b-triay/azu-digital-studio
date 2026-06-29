@@ -11,8 +11,7 @@ interface ClientFile {
   client_id: string;
   client_name?: string;
   name: string;
-  file_path: string;
-  file_url?: string;
+  drive_file_id: string;
   type: string;
   size_bytes?: number;
   created_at: string;
@@ -94,36 +93,86 @@ export default function StaffFilesPage() {
     if (!filesToUpload || filesToUpload.length === 0 || !uploadClient) return;
     setUploading(true);
     setUploadError('');
-    const supabase = createClient();
 
     for (let i = 0; i < filesToUpload.length; i++) {
       const file = filesToUpload[i];
-      setUploadProgress(Math.round((i / filesToUpload.length) * 80));
+      setUploadProgress(0);
 
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-      const path = `${uploadClient}/${Date.now()}_${safeName}`;
+      // Step 1: get resumable upload URL from our API
+      const sessionRes = await fetch('/api/files/upload-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          size: file.size,
+        }),
+      });
 
-      const { error: storageError } = await supabase.storage
-        .from('portal-files')
-        .upload(path, file, { upsert: false });
-
-      if (storageError) {
-        setUploadError(storageError.message);
+      if (!sessionRes.ok) {
+        const { error } = await sessionRes.json();
+        setUploadError(error ?? 'Failed to start upload');
         setUploading(false);
         setUploadProgress(0);
         return;
       }
 
-      const { data: urlData } = supabase.storage.from('portal-files').getPublicUrl(path);
+      const { uploadUrl } = await sessionRes.json();
 
-      await supabase.from('client_files').insert({
-        client_id: uploadClient,
-        name: file.name,
-        file_path: path,
-        file_url: urlData?.publicUrl,
-        type: detectType(file),
-        size_bytes: file.size,
+      // Step 2: upload directly to Google Drive with progress tracking
+      const driveFileId = await new Promise<string>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('PUT', uploadUrl);
+        xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            setUploadProgress(Math.round((e.loaded / e.total) * 90));
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            const data = JSON.parse(xhr.responseText) as { id: string };
+            resolve(data.id);
+          } else {
+            reject(new Error(`Drive upload failed: ${xhr.status}`));
+          }
+        };
+
+        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.send(file);
+      }).catch((err: Error) => {
+        setUploadError(err.message);
+        return null;
       });
+
+      if (!driveFileId) {
+        setUploading(false);
+        setUploadProgress(0);
+        return;
+      }
+
+      // Step 3: register metadata in Supabase
+      const registerRes = await fetch('/api/files/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          driveFileId,
+          clientId: uploadClient,
+          name: file.name,
+          sizeBytes: file.size,
+          type: detectType(file),
+        }),
+      });
+
+      if (!registerRes.ok) {
+        const { error } = await registerRes.json();
+        setUploadError(error ?? 'Failed to register file');
+        setUploading(false);
+        setUploadProgress(0);
+        return;
+      }
 
       setUploadProgress(Math.round(((i + 1) / filesToUpload.length) * 100));
     }
@@ -137,26 +186,22 @@ export default function StaffFilesPage() {
   const handleDelete = async (file: ClientFile) => {
     if (!confirm(`Delete "${file.name}"?`)) return;
     setDeleting(file.id);
-    const supabase = createClient();
-    await supabase.storage.from('portal-files').remove([file.file_path]);
-    await supabase.from('client_files').delete().eq('id', file.id);
+
+    const res = await fetch(`/api/files/${file.drive_file_id}`, {
+      method: 'DELETE',
+    });
+
+    if (!res.ok) {
+      const { error } = await res.json();
+      setUploadError(error ?? 'Delete failed');
+    }
+
     setDeleting(null);
     loadFiles();
   };
 
-  const handleDownload = async (file: ClientFile) => {
-    const supabase = createClient();
-    const { data } = await supabase.storage
-      .from('portal-files')
-      .createSignedUrl(file.file_path, 3600);
-    if (data?.signedUrl) {
-      const a = document.createElement('a');
-      a.href = data.signedUrl;
-      a.download = file.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
+  const handleDownload = (file: ClientFile) => {
+    window.location.href = `/api/files/download/${file.drive_file_id}`;
   };
 
   const clientColor = (id: string) => clients.find(c => c.id === id)?.color ?? '#8A9BB0';
@@ -234,7 +279,7 @@ export default function StaffFilesPage() {
           <p className="text-sm font-medium" style={{ color: '#8A9BB0' }}>
             {uploadClient ? 'Drag and drop files here' : 'Select a client first'}
           </p>
-          <p className="text-xs" style={{ color: '#cbd5e1' }}>Max 50 MB · Images, videos, PDFs, documents</p>
+          <p className="text-xs" style={{ color: '#cbd5e1' }}>Images, videos, PDFs, documents · Any size</p>
         </div>
 
         {/* Progress bar */}
