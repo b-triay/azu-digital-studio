@@ -85,7 +85,9 @@ Singleton that initializes the Google Drive API client using service account cre
 - `getFileStream(driveFileId)` → readable stream + metadata (name, mimeType)
 
 ### `app/api/files/upload-session/route.ts`
-`POST` — Staff only. Calls `createUploadSession`. Returns `{ uploadUrl, driveFileId }`.
+`POST` — Staff only. Calls `createUploadSession`. Returns `{ uploadUrl }`.
+
+> **Note (implementation divergence):** The original spec showed `{ uploadUrl, driveFileId }` but Google Drive's resumable upload API does not return the file ID at session creation time — it only returns the `uploadUrl`. The `driveFileId` is returned by Google in the XHR response body when the upload completes (Step 2). The client then passes it to `/api/files/register`.
 
 ### `app/api/files/register/route.ts`
 `POST` — Staff only. Inserts into `client_files` with `drive_file_id`, sets `file_path` and `file_url` to null.
