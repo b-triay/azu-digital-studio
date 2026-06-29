@@ -1,0 +1,6 @@
+<svg width="160" height="36" viewBox="0 0 160 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="2" y="8" width="20" height="20" rx="3" fill="#f4a261" opacity="0.9"/>
+  <rect x="8" y="2" width="20" height="20" rx="3" fill="#294864" stroke="#f4a261" stroke-width="1.5"/>
+  <text x="38" y="25" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="800" font-size="18" fill="#294864" letter-spacing="-0.5">Azu</text>
+  <text x="72" y="25" font-family="'Plus Jakarta Sans', system-ui, sans-serif" font-weight="400" font-size="13" fill="#475569" letter-spacing="0.5">Digital Studio</text>
+</svg>

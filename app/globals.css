@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  --color-midnight: #0A0F1C;
+  --color-midnight-2: #141C2E;
+  --color-ivory: #F7F4EE;
+  --color-ivory-dark: #EDE9E1;
+  --color-brass: #B8976C;
+  --color-brass-light: #CEB08A;
+  --color-slate: #8A9BB0;
+  --color-slate-dark: #5A6B80;
+  --color-white: #ffffff;
+  --background: #F7F4EE;
+  --foreground: #0A0F1C;
+  --font-display: var(--font-cormorant), 'Cormorant Garamond', Georgia, serif;
+  --font-sans: var(--font-instrument), 'Instrument Sans', system-ui, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  background: var(--color-ivory);
+  color: var(--color-midnight);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+}
+
+::selection {
+  background: rgba(184, 151, 108, 0.2);
+  color: var(--color-midnight);
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-ivory-dark);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-brass);
+  border-radius: 3px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brass);
+  outline-offset: 2px;
+}
+
+/* Omega-style text reveal — used via Framer Motion clip-path */
+@keyframes reveal-up {
+  from { clip-path: inset(0 0 100% 0); }
+  to   { clip-path: inset(0 0 0% 0); }
+}
+
+.text-reveal {
+  clip-path: inset(0 0 100% 0);
+  animation: reveal-up 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .text-reveal {
+    clip-path: none;
+    animation: none;
+  }
+}
