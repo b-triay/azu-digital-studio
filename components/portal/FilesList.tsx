@@ -18,11 +18,11 @@ const FILE_COLORS: Record<FileType, { bg: string; icon: string }> = {
 };
 
 const MOCK_FILES: ClientFile[] = [
-  { id: '1', client_id: 'c1', name: 'June_Reels_Pack.zip', drive_file_id: 'df1', file_url: '#', type: 'video', size_bytes: 245000000, created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
-  { id: '2', client_id: 'c1', name: 'Brand_Assets_2025.zip', drive_file_id: 'df2', file_url: '#', type: 'image', size_bytes: 18500000, created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
-  { id: '3', client_id: 'c1', name: 'Monthly_Report_May.pdf', drive_file_id: 'df3', file_url: '#', type: 'pdf', size_bytes: 2400000, created_at: new Date(Date.now() - 86400000 * 10).toISOString() },
-  { id: '4', client_id: 'c1', name: 'Email_Templates_Q2.zip', drive_file_id: 'df4', file_url: '#', type: 'other', size_bytes: 850000, created_at: new Date(Date.now() - 86400000 * 14).toISOString() },
-  { id: '5', client_id: 'c1', name: 'Social_Captions_June.pdf', drive_file_id: 'df5', file_url: '#', type: 'pdf', size_bytes: 450000, created_at: new Date(Date.now() - 86400000 * 1).toISOString() },
+  { id: '1', client_id: 'c1', name: 'June_Reels_Pack.zip', drive_file_id: 'drive_1', file_url: '#', type: 'video', size_bytes: 245000000, created_at: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: '2', client_id: 'c1', name: 'Brand_Assets_2025.zip', drive_file_id: 'drive_2', file_url: '#', type: 'image', size_bytes: 18500000, created_at: new Date(Date.now() - 86400000 * 5).toISOString() },
+  { id: '3', client_id: 'c1', name: 'Monthly_Report_May.pdf', drive_file_id: 'drive_3', file_url: '#', type: 'pdf', size_bytes: 2400000, created_at: new Date(Date.now() - 86400000 * 10).toISOString() },
+  { id: '4', client_id: 'c1', name: 'Email_Templates_Q2.zip', drive_file_id: 'drive_4', file_url: '#', type: 'other', size_bytes: 850000, created_at: new Date(Date.now() - 86400000 * 14).toISOString() },
+  { id: '5', client_id: 'c1', name: 'Social_Captions_June.pdf', drive_file_id: 'drive_5', file_url: '#', type: 'pdf', size_bytes: 450000, created_at: new Date(Date.now() - 86400000 * 1).toISOString() },
 ];
 
 function formatSize(bytes: number): string {
