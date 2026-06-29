@@ -5,7 +5,7 @@ function getAuth() {
   return new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    scopes: ['https://www.googleapis.com/auth/drive'],
+    scopes: ['https://www.googleapis.com/auth/drive.file'],
   });
 }
 
@@ -22,6 +22,7 @@ export async function createUploadSession(
 ): Promise<{ uploadUrl: string }> {
   const auth = getAuth();
   const { token } = await auth.getAccessToken();
+  if (!token) throw new Error('Failed to obtain Google auth token');
 
   const res = await fetch(
     'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',

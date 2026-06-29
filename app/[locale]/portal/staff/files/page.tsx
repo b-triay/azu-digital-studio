@@ -31,7 +31,8 @@ function formatBytes(bytes?: number): string {
   if (!bytes) return '—';
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 const TYPE_ICONS: Record<string, React.ElementType> = {
@@ -168,6 +169,8 @@ export default function StaffFilesPage() {
 
       if (!registerRes.ok) {
         const { error } = await registerRes.json();
+        // Cleanup orphaned Drive file
+        await fetch(`/api/files/${driveFileId}`, { method: 'DELETE' });
         setUploadError(error ?? 'Failed to register file');
         setUploading(false);
         setUploadProgress(0);
@@ -201,7 +204,12 @@ export default function StaffFilesPage() {
   };
 
   const handleDownload = (file: ClientFile) => {
-    window.location.href = `/api/files/download/${file.drive_file_id}`;
+    const a = document.createElement('a');
+    a.href = `/api/files/download/${file.drive_file_id}`;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const clientColor = (id: string) => clients.find(c => c.id === id)?.color ?? '#8A9BB0';
