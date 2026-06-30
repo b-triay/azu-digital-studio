@@ -13,7 +13,7 @@ function getAuth() {
   return new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
     key: parsePrivateKey(process.env.GOOGLE_PRIVATE_KEY),
-    scopes: ['https://www.googleapis.com/auth/drive.file'],
+    scopes: ['https://www.googleapis.com/auth/drive'],
   });
 }
 
