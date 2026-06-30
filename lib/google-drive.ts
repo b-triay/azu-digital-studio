@@ -1,10 +1,18 @@
 import { google } from 'googleapis';
 import type { Readable } from 'stream';
 
+function parsePrivateKey(raw: string | undefined): string | undefined {
+  if (!raw) return undefined;
+  // Strip accidental surrounding quotes (common when pasting the JSON value verbatim)
+  const stripped = raw.trim().replace(/^["']|["']$/g, '');
+  // Convert literal \n sequences (Vercel stores them as two chars) to real newlines
+  return stripped.replace(/\\n/g, '\n');
+}
+
 function getAuth() {
   return new google.auth.JWT({
     email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-    key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    key: parsePrivateKey(process.env.GOOGLE_PRIVATE_KEY),
     scopes: ['https://www.googleapis.com/auth/drive.file'],
   });
 }
