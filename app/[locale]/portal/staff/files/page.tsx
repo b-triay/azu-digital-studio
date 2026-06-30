@@ -99,32 +99,12 @@ export default function StaffFilesPage() {
       const file = filesToUpload[i];
       setUploadProgress(0);
 
-      // Step 1: get resumable upload URL from our API
-      const sessionRes = await fetch('/api/files/upload-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-        }),
-      });
-
-      if (!sessionRes.ok) {
-        const { error } = await sessionRes.json();
-        setUploadError(error ?? 'Failed to start upload');
-        setUploading(false);
-        setUploadProgress(0);
-        return;
-      }
-
-      const { uploadUrl } = await sessionRes.json();
-
-      // Step 2: upload directly to Google Drive with progress tracking
-      const driveFileId = await new Promise<string>((resolve, reject) => {
+      // Step 1: upload file through server proxy → Drive (avoids googleapis.com CORS)
+      const driveFileId = await new Promise<string | null>((resolve) => {
         const xhr = new XMLHttpRequest();
-        xhr.open('PUT', uploadUrl);
+        xhr.open('POST', '/api/files/upload');
         xhr.setRequestHeader('Content-Type', file.type || 'application/octet-stream');
+        xhr.setRequestHeader('X-Filename', encodeURIComponent(file.name));
 
         xhr.upload.onprogress = (e) => {
           if (e.lengthComputable) {
@@ -134,18 +114,25 @@ export default function StaffFilesPage() {
 
         xhr.onload = () => {
           if (xhr.status >= 200 && xhr.status < 300) {
-            const data = JSON.parse(xhr.responseText) as { id: string };
-            resolve(data.id);
+            const data = JSON.parse(xhr.responseText) as { driveFileId: string };
+            resolve(data.driveFileId);
           } else {
-            reject(new Error(`Drive upload failed: ${xhr.status}`));
+            try {
+              const { error } = JSON.parse(xhr.responseText) as { error: string };
+              setUploadError(error ?? `Upload failed: ${xhr.status}`);
+            } catch {
+              setUploadError(`Upload failed: ${xhr.status}`);
+            }
+            resolve(null);
           }
         };
 
-        xhr.onerror = () => reject(new Error('Network error during upload'));
+        xhr.onerror = () => {
+          setUploadError('Network error during upload');
+          resolve(null);
+        };
+
         xhr.send(file);
-      }).catch((err: Error) => {
-        setUploadError(err.message);
-        return null;
       });
 
       if (!driveFileId) {
@@ -154,7 +141,7 @@ export default function StaffFilesPage() {
         return;
       }
 
-      // Step 3: register metadata in Supabase
+      // Step 2: register metadata in Supabase
       const registerRes = await fetch('/api/files/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -168,8 +155,7 @@ export default function StaffFilesPage() {
       });
 
       if (!registerRes.ok) {
-        const { error } = await registerRes.json();
-        // Cleanup orphaned Drive file
+        const { error } = await registerRes.json() as { error: string };
         await fetch(`/api/files/${driveFileId}`, { method: 'DELETE' });
         setUploadError(error ?? 'Failed to register file');
         setUploading(false);
