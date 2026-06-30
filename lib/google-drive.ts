@@ -33,7 +33,7 @@ export async function createUploadSession(
   if (!token) throw new Error('Failed to obtain Google auth token');
 
   const res = await fetch(
-    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable&supportsAllDrives=true',
     {
       method: 'POST',
       headers: {
@@ -59,7 +59,7 @@ export async function createUploadSession(
 
 export async function deleteFile(driveFileId: string): Promise<void> {
   const drive = getDrive();
-  await drive.files.delete({ fileId: driveFileId });
+  await drive.files.delete({ fileId: driveFileId, supportsAllDrives: true });
 }
 
 export async function getFileStream(driveFileId: string): Promise<{
@@ -72,10 +72,11 @@ export async function getFileStream(driveFileId: string): Promise<{
   const meta = await drive.files.get({
     fileId: driveFileId,
     fields: 'name,mimeType',
+    supportsAllDrives: true,
   });
 
   const content = await drive.files.get(
-    { fileId: driveFileId, alt: 'media' },
+    { fileId: driveFileId, alt: 'media', supportsAllDrives: true },
     { responseType: 'stream' },
   );
 
