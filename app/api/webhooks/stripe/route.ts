@@ -15,10 +15,12 @@ async function updateClientStatus(
   supabase: ReturnType<typeof createAdminClient>,
   customerId: string,
   status: string,
-  subscriptionId?: string
+  subscriptionId?: string,
+  planName?: string | null
 ) {
-  const update: Record<string, string> = { subscription_status: status };
+  const update: Record<string, any> = { subscription_status: status };
   if (subscriptionId) update.stripe_subscription_id = subscriptionId;
+  if (planName !== undefined) update.plan = planName;
   await supabase
     .from('clients')
     .update(update)
@@ -44,23 +46,46 @@ export async function POST(request: Request) {
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.Checkout.Session;
       if (session.mode === 'subscription' && session.customer) {
+        const subscriptionId = session.subscription as string;
+        const subscription = await getStripe().subscriptions.retrieve(subscriptionId);
+        const priceId = subscription.items.data[0]?.price.id;
+        let planName = null;
+        if (priceId) {
+          const { data: plan } = await supabase
+            .from('plans')
+            .select('name')
+            .eq('stripe_price_id', priceId)
+            .single();
+          if (plan) planName = plan.name;
+        }
         await updateClientStatus(
           supabase,
           session.customer as string,
           'active',
-          session.subscription as string
+          subscriptionId,
+          planName
         );
       }
       break;
     }
     case 'customer.subscription.updated': {
       const sub = event.data.object as Stripe.Subscription;
-      await updateClientStatus(supabase, sub.customer as string, sub.status, sub.id);
+      const priceId = sub.items.data[0]?.price.id;
+      let planName = null;
+      if (priceId) {
+        const { data: plan } = await supabase
+          .from('plans')
+          .select('name')
+          .eq('stripe_price_id', priceId)
+          .single();
+        if (plan) planName = plan.name;
+      }
+      await updateClientStatus(supabase, sub.customer as string, sub.status, sub.id, planName);
       break;
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object as Stripe.Subscription;
-      await updateClientStatus(supabase, sub.customer as string, 'canceled');
+      await updateClientStatus(supabase, sub.customer as string, 'canceled', undefined, null);
       break;
     }
   }

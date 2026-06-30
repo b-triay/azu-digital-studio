@@ -10,6 +10,7 @@ interface Plan {
   name: string;
   description: string | null;
   price_usd: number | null;
+  stripe_price_id: string | null;
   active: boolean;
   created_at: string;
 }
@@ -18,10 +19,11 @@ interface PlanForm {
   name: string;
   description: string;
   price_usd: string;
+  stripe_price_id: string;
   active: boolean;
 }
 
-const DEFAULT_FORM: PlanForm = { name: '', description: '', price_usd: '', active: true };
+const DEFAULT_FORM: PlanForm = { name: '', description: '', price_usd: '', stripe_price_id: '', active: true };
 
 const overlayStyle: React.CSSProperties = {
   position: 'fixed', inset: 0, zIndex: 50,
@@ -50,7 +52,13 @@ export default function PlansPage() {
 
   const openCreate = () => { setForm(DEFAULT_FORM); setShowCreate(true); };
   const openEdit = (plan: Plan) => {
-    setForm({ name: plan.name, description: plan.description ?? '', price_usd: plan.price_usd != null ? String(plan.price_usd) : '', active: plan.active });
+    setForm({
+      name: plan.name,
+      description: plan.description ?? '',
+      price_usd: plan.price_usd != null ? String(plan.price_usd) : '',
+      stripe_price_id: plan.stripe_price_id ?? '',
+      active: plan.active,
+    });
     setEditTarget(plan);
   };
 
@@ -62,6 +70,7 @@ export default function PlansPage() {
       name: form.name.trim(),
       description: form.description.trim() || null,
       price_usd: form.price_usd !== '' ? parseFloat(form.price_usd) : null,
+      stripe_price_id: form.stripe_price_id.trim() || null,
       active: form.active,
     };
     if (editTarget) {
@@ -171,6 +180,9 @@ export default function PlansPage() {
                 {plan.description && (
                   <p className="text-xs truncate" style={{ color: '#5A6B80' }}>{plan.description}</p>
                 )}
+                {plan.stripe_price_id && (
+                  <p className="text-[10px] font-mono mt-0.5" style={{ color: '#8A9BB0' }}>Stripe: {plan.stripe_price_id}</p>
+                )}
               </div>
 
               {/* Price */}
@@ -275,6 +287,20 @@ export default function PlansPage() {
                     <span className="text-sm font-semibold" style={{ color: '#334155' }}>Plan activo</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Stripe Price ID */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>
+                  ID de Precio de Stripe (stripe_price_id)
+                </label>
+                <input
+                  value={form.stripe_price_id}
+                  onChange={e => setForm(f => ({ ...f, stripe_price_id: e.target.value }))}
+                  placeholder="Ej: price_1Q..."
+                  className="w-full px-3 py-2.5 rounded-xl text-sm outline-none font-mono"
+                  style={{ background: '#F7F4EE', border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', fontFamily: 'inherit' }}
+                />
               </div>
 
               {/* Actions */}
