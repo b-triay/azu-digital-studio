@@ -104,7 +104,7 @@ export async function POST(
       const toEmail = process.env.RESEND_ACCOUNT_EMAIL ?? email;
 
       await resend.emails.send({
-        from: 'Azu Digital Studio <onboarding@resend.dev>',
+        from: process.env.RESEND_SENDER_EMAIL ?? 'Azu Digital Studio <onboarding@resend.dev>',
         to: toEmail,
         subject: 'Bienvenido a Azu Digital Studio — Creá tu contraseña',
         html: `

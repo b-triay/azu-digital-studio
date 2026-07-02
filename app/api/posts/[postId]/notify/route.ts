@@ -115,7 +115,7 @@ export async function POST(
     `;
 
     await resend.emails.send({
-      from: 'Azu Digital Studio <onboarding@resend.dev>',
+      from: process.env.RESEND_SENDER_EMAIL ?? 'Azu Digital Studio <onboarding@resend.dev>',
       to: toEmails,
       subject: subject,
       html: htmlContent,
