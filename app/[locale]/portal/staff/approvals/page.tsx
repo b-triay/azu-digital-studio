@@ -25,6 +25,7 @@ interface ApprovalItem {
   status: ApprovalStatus;
   clientComment?: string;
   media_url?: string | null;
+  isInternallyApproved: boolean;
 }
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
@@ -93,10 +94,13 @@ export default function StaffApprovalsPage() {
         .in('status', ['pending_approval', 'approved', 'rejected'])
         .order('created_at', { ascending: false }),
       supabase.from('clients').select('id, name, initials, color'),
-    ]).then(([postsRes, clientsRes]) => {
+      supabase.from('approvals').select('post_id').eq('action', 'internal_approved'),
+    ]).then(([postsRes, clientsRes, approvalsRes]) => {
       const posts   = postsRes.data   ?? [];
       const clients = clientsRes.data ?? [];
+      const approvals = approvalsRes.data ?? [];
       const clientMap = new Map(clients.map((c: { id: string; name: string; initials: string; color: string }) => [c.id, c]));
+      const internallyApprovedIds = new Set(approvals.map((a: any) => a.post_id));
 
       const mapped: ApprovalItem[] = posts.map((r: {
         id: string; title: string; caption: string;
@@ -117,6 +121,7 @@ export default function StaffApprovalsPage() {
           scheduledRaw: r.scheduled_for,
           status: mapStatus(r.status),
           media_url: r.media_url ?? null,
+          isInternallyApproved: internallyApprovedIds.has(r.id),
         };
       });
       setItems(mapped);
@@ -222,6 +227,26 @@ export default function StaffApprovalsPage() {
     if (!error) {
       setItems((prev) =>
         prev.map((i) => (i.id === selected.id ? { ...i, status: mapStatus(newStatus) } : i))
+      );
+    }
+    setActionLoading(null);
+  }
+
+  async function handleInternalApprove() {
+    if (!selected || actionLoading) return;
+    setActionLoading('approve');
+    const supabase = createClient();
+    
+    // Insert internal approval record
+    const { error } = await supabase.from('approvals').insert({
+      post_id: selected.id,
+      action: 'internal_approved',
+      comment: `Aprobado internamente por ${myName}`,
+    });
+
+    if (!error) {
+      setItems((prev) =>
+        prev.map((i) => (i.id === selected.id ? { ...i, isInternallyApproved: true } : i))
       );
     }
     setActionLoading(null);
@@ -537,7 +562,24 @@ export default function StaffApprovalsPage() {
                         </div>
                       )}
 
-                      {/* Status notice (approved or rejected) */}
+                      {/* Internal approval status or client status notice */}
+                      {selected.status === 'pending' && (
+                        <div
+                          className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium"
+                          style={{
+                            background: selected.isInternallyApproved ? '#eff6ff' : '#fff7ed',
+                            color: selected.isInternallyApproved ? '#2563eb' : '#ea580c',
+                            border: `1px solid ${selected.isInternallyApproved ? '#bfdbfe' : '#ffedd5'}`,
+                          }}
+                        >
+                          <Clock size={16} />
+                          {selected.isInternallyApproved
+                            ? 'Aprobado internamente — Esperando revisión del cliente'
+                            : 'Pendiente de Aprobación Interna por otro empleado'}
+                        </div>
+                      )}
+
+                      {/* Client status notice (approved or rejected) */}
                       {selected.status !== 'pending' && (
                         <div
                           className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium"
@@ -554,26 +596,17 @@ export default function StaffApprovalsPage() {
                         </div>
                       )}
 
-                      {/* Approve / Reject actions */}
-                      {selected.status === 'pending' && (
+                      {/* Internal Approve Action */}
+                      {selected.status === 'pending' && !selected.isInternallyApproved && (
                         <div className="flex gap-3 pt-1">
                           <button
-                            onClick={() => handleAction('approve')}
+                            onClick={handleInternalApprove}
                             disabled={actionLoading !== null}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                            style={{ background: '#16a34a', color: '#ffffff', boxShadow: '0 4px 12px rgba(22,163,74,0.25)' }}
+                            className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
+                            style={{ background: '#0A0F1C', color: '#ffffff', boxShadow: '0 4px 12px rgba(10,15,28,0.2)' }}
                           >
                             <CheckCircle2 size={15} />
-                            {actionLoading === 'approve' ? t('staffApprovals.approving') : t('staffApprovals.approve')}
-                          </button>
-                          <button
-                            onClick={() => handleAction('reject')}
-                            disabled={actionLoading !== null}
-                            className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-bold transition-all hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-                            style={{ background: '#dc2626', color: '#ffffff', boxShadow: '0 4px 12px rgba(220,38,38,0.2)' }}
-                          >
-                            <XCircle size={15} />
-                            {actionLoading === 'reject' ? t('staffApprovals.rejecting') : t('staffApprovals.reject')}
+                            {actionLoading === 'approve' ? 'Aprobando...' : 'Dar Aprobación Interna'}
                           </button>
                         </div>
                       )}

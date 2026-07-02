@@ -107,6 +107,7 @@ export default function NewPostPage() {
   const isNearLimit       = charCount > maxChars * 0.8;
   const isOverLimit       = charCount > maxChars;
   const effectiveRate     = customRate !== '' ? parseFloat(customRate) : (ALL_CONTENT_TYPES[contentType]?.rate ?? 0);
+  const isValidDraft      = clientId && title.trim() && !uploadingMedia;
   const isValid           = clientId && title.trim() && caption.trim() && scheduledDate && contentType && !isOverLimit && customRate !== '' && !isNaN(effectiveRate) && effectiveRate >= 0 && !uploadingMedia;
 
   const toggleStaff = (id: string) =>
@@ -165,12 +166,15 @@ export default function NewPostPage() {
   };
 
   const handleSubmit = async (action: PostAction) => {
-    if (!isValid || saving) return;
+    const checkValid = action === 'draft' ? isValidDraft : isValid;
+    if (!checkValid || saving) return;
     setSaving(true);
 
     try {
       const supabase = createClient();
-      const scheduledFor = new Date(`${scheduledDate}T${scheduledTime || '12:00'}:00`).toISOString();
+      const scheduledFor = scheduledDate
+        ? new Date(`${scheduledDate}T${scheduledTime || '12:00'}:00`).toISOString()
+        : null;
 
       const { data: post, error: postError } = await supabase
         .from('posts')
@@ -660,11 +664,11 @@ export default function NewPostPage() {
           <div className="flex gap-3">
             <motion.button
               onClick={() => handleSubmit('draft')}
-              disabled={!isValid || saving}
+              disabled={!isValidDraft || saving}
               className="flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ background: '#EDE9E1', color: '#5A6B80', border: '1.5px solid rgba(10,15,28,0.1)' }}
-              whileHover={isValid ? { scale: 1.01, y: -1 } : {}}
-              whileTap={isValid ? { scale: 0.98 } : {}}
+              whileHover={isValidDraft ? { scale: 1.01, y: -1 } : {}}
+              whileTap={isValidDraft ? { scale: 0.98 } : {}}
               transition={{ type: 'spring', stiffness: 400, damping: 25 }}
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}

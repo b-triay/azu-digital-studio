@@ -92,6 +92,7 @@ export default function DashboardOverviewPage() {
       { data: pendingPosts },
       { data: upcomingPosts },
       { count: unreadCount },
+      { data: internalApprovals },
     ] = await Promise.all([
       supabase
         .from('posts')
@@ -104,8 +105,7 @@ export default function DashboardOverviewPage() {
         .select('id, platform, title, scheduled_for')
         .eq('client_id', client.id)
         .eq('status', 'pending_approval')
-        .order('scheduled_for', { ascending: true })
-        .limit(6),
+        .order('scheduled_for', { ascending: true }),
       supabase
         .from('posts')
         .select('id, platform, title, scheduled_for')
@@ -119,14 +119,23 @@ export default function DashboardOverviewPage() {
         .select('id', { count: 'exact', head: true })
         .eq('client_id', client.id)
         .eq('read_by_client', false),
+      supabase
+        .from('approvals')
+        .select('post_id')
+        .eq('action', 'internal_approved'),
     ]);
+
+    const internallyApprovedIds = new Set((internalApprovals ?? []).map(a => a.post_id));
+    const filteredPending = (pendingPosts ?? [])
+      .filter(p => internallyApprovedIds.has(p.id))
+      .slice(0, 6);
 
     setStats({
       postsWeek:      (weekPosts as unknown as { length?: number })?.length ?? 0,
-      approvals:      pendingPosts?.length ?? 0,
+      approvals:      filteredPending.length,
       unreadMessages: unreadCount ?? 0,
     });
-    setApprovals(pendingPosts ?? []);
+    setApprovals(filteredPending);
     setUpcoming(upcomingPosts ?? []);
     setLoading(false);
   }, []);
@@ -135,7 +144,25 @@ export default function DashboardOverviewPage() {
 
   const handleAction = async (postId: string, action: 'approved' | 'rejected') => {
     const supabase = createClient();
-    await supabase.from('posts').update({ status: action }).eq('id', postId);
+    const comment = action === 'approved' ? 'Aprobado desde el panel principal' : 'Rechazado desde el panel principal';
+
+    // 1. Update post status
+    await supabase.from('posts').update({ status: action === 'approved' ? 'approved' : 'rejected' }).eq('id', postId);
+
+    // 2. Insert approval action record
+    await supabase.from('approvals').insert({
+      post_id: postId,
+      action: action,
+      comment: comment,
+    });
+
+    // 3. Trigger email notification
+    fetch(`/api/posts/${postId}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, comment }),
+    }).catch(err => console.error('Failed to send email notification:', err));
+
     setApprovals((prev) => prev.filter((p) => p.id !== postId));
     setStats((prev) => ({ ...prev, approvals: Math.max(0, prev.approvals - 1) }));
   };

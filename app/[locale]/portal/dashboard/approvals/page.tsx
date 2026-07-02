@@ -72,22 +72,32 @@ export default function ApprovalsPage() {
 
     if (!clientRow) { setLoading(false); return; }
 
-    const { data: posts } = await supabase
-      .from('posts')
-      .select('id, platform, title, caption, scheduled_for, status, media_url')
-      .eq('client_id', clientRow.id)
-      .in('status', ['pending_approval', 'approved', 'rejected'])
-      .order('scheduled_for', { ascending: true });
+    const [{ data: posts }, { data: internalApprovals }] = await Promise.all([
+      supabase
+        .from('posts')
+        .select('id, platform, title, caption, scheduled_for, status, media_url')
+        .eq('client_id', clientRow.id)
+        .in('status', ['pending_approval', 'approved', 'rejected'])
+        .order('scheduled_for', { ascending: true }),
+      supabase
+        .from('approvals')
+        .select('post_id')
+        .eq('action', 'internal_approved'),
+    ]);
 
-    const mapped: ApprovalItem[] = (posts ?? []).map((p) => ({
-      id: p.id,
-      platform: (p.platform ?? 'instagram') as Platform,
-      title: p.title ?? '(sin título)',
-      caption: p.caption ?? null,
-      scheduled: formatDate(p.scheduled_for),
-      status: dbStatusToLocal(p.status),
-      media_url: p.media_url ?? null,
-    }));
+    const internallyApprovedIds = new Set((internalApprovals ?? []).map((a) => a.post_id));
+
+    const mapped: ApprovalItem[] = (posts ?? [])
+      .filter((p) => p.status !== 'pending_approval' || internallyApprovedIds.has(p.id))
+      .map((p) => ({
+        id: p.id,
+        platform: (p.platform ?? 'instagram') as Platform,
+        title: p.title ?? '(sin título)',
+        caption: p.caption ?? null,
+        scheduled: formatDate(p.scheduled_for),
+        status: dbStatusToLocal(p.status),
+        media_url: p.media_url ?? null,
+      }));
 
     setItems(mapped);
     const firstPending = mapped.find((i) => i.status === 'pending');

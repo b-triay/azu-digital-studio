@@ -258,6 +258,8 @@ export default function StaffPostsPage() {
       media_url: editForm.media_url || null,
     }).eq('id', editingPost.id);
     if (error) { setEditError(error.message); setSaving(false); return; }
+    // Reset internal approval if post was edited (so it requires a fresh staff review)
+    await supabase.from('approvals').delete().eq('post_id', editingPost.id).eq('action', 'internal_approved');
     setSaving(false);
     setEditingPost(null);
     loadData();

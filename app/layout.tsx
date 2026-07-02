@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google';
 import './globals.css';
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
+import { CookieBanner } from '@/components/ui/CookieBanner';
 
 const cormorantGaramond = Cormorant_Garamond({
   subsets: ['latin'],
@@ -54,6 +55,7 @@ export default function RootLayout({
         {children}
         <Analytics />
         <SpeedInsights />
+        <CookieBanner />
       </body>
     </html>
   );
