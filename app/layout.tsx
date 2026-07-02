@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { Cormorant_Garamond, Instrument_Sans } from 'next/font/google';
 import './globals.css';
+import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 
 const cormorantGaramond = Cormorant_Garamond({
   subsets: ['latin'],
@@ -48,7 +50,11 @@ export default function RootLayout({
 }>) {
   return (
     <html className={`${cormorantGaramond.variable} ${instrumentSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        {children}
+        <Analytics />
+        <SpeedInsights />
+      </body>
     </html>
   );
 }
