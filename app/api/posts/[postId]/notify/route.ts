@@ -53,7 +53,7 @@ export async function POST(
     .filter((s): s is { name: string; email: string } => !!s);
 
   // 3. Prepare recipients
-  const DEST_EMAIL = process.env.CONTACT_DEST_EMAIL ?? 'hola@azudigitalstudio.com';
+  const DEST_EMAIL = process.env.CONTACT_DEST_EMAIL ?? 'staff@azudigitalstudio.com';
   let toEmails = staffList.map(s => s.email);
 
   if (toEmails.length === 0) {

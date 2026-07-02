@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient as createSupabaseClient } from '@supabase/supabase-js';
 
-const DEST_EMAIL = process.env.CONTACT_DEST_EMAIL ?? 'hola@azudigitalstudio.com';
+const DEST_EMAIL = process.env.CONTACT_DEST_EMAIL ?? 'staff@azudigitalstudio.com';
 
 interface ContactPayload {
   name: string;
