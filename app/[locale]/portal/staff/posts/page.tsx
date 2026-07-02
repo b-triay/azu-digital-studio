@@ -37,6 +37,7 @@ interface Post {
   clientInitials: string;
   clientColor: string;
   staff: StaffChip[];
+  media_url?: string | null;
 }
 
 interface Client {
@@ -53,6 +54,7 @@ interface EditForm {
   status: PostStatus;
   scheduled_for: string;
   custom_rate_usd: string;
+  media_url: string;
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -109,7 +111,7 @@ export default function StaffPostsPage() {
   const [statusTab, setStatusTab]       = useState<'all' | PostStatus>('all');
 
   const [editingPost, setEditingPost] = useState<Post | null>(null);
-  const [editForm, setEditForm]       = useState<EditForm>({ title: '', caption: '', platform: 'instagram', status: 'draft', scheduled_for: '', custom_rate_usd: '' });
+  const [editForm, setEditForm]       = useState<EditForm>({ title: '', caption: '', platform: 'instagram', status: 'draft', scheduled_for: '', custom_rate_usd: '', media_url: '' });
   const [saving, setSaving]           = useState(false);
   const [editError, setEditError]     = useState('');
 
@@ -122,7 +124,7 @@ export default function StaffPostsPage() {
     const [postsRes, clientsRes, assignmentsRes, staffRes] = await Promise.all([
       supabase
         .from('posts')
-        .select('id, title, caption, platform, content_type, status, scheduled_for, custom_rate_usd, client_id, created_at')
+        .select('id, title, caption, platform, content_type, status, scheduled_for, custom_rate_usd, client_id, created_at, media_url')
         .order('scheduled_for', { ascending: false }),
       supabase.from('clients').select('id, name, initials, color'),
       supabase.from('post_assignments').select('post_id, staff_member_id'),
@@ -146,13 +148,20 @@ export default function StaffPostsPage() {
     const ps: Post[] = (postsRes.data ?? []).map((p: {
       id: string; title: string; caption: string; platform: string; content_type: string;
       status: string; scheduled_for: string | null; custom_rate_usd: number | null;
-      client_id: string; created_at: string;
+      client_id: string; created_at: string; media_url?: string | null;
     }) => {
       const cl = clMap.get(p.client_id);
       return {
-        ...p,
-        platform: (p.platform ?? 'instagram') as Platform,
-        status: (p.status ?? 'draft') as PostStatus,
+        id: p.id,
+        title: p.title,
+        caption: p.caption,
+        platform: p.platform as Platform,
+        content_type: p.content_type,
+        status: p.status as PostStatus,
+        scheduled_for: p.scheduled_for,
+        custom_rate_usd: p.custom_rate_usd,
+        client_id: p.client_id,
+        created_at: p.created_at,
         clientName: cl?.name ?? '—',
         clientInitials: cl?.initials ?? '??',
         clientColor: cl?.color ?? '#0A0F1C',
@@ -165,6 +174,58 @@ export default function StaffPostsPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaUploadProgress, setMediaUploadProgress] = useState(0);
+  const [mediaError, setMediaError]       = useState('');
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setUploadingMedia(true);
+    setMediaError('');
+    setMediaUploadProgress(0);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/files/upload');
+    xhr.setRequestHeader('Content-Type', selectedFile.type || 'application/octet-stream');
+    xhr.setRequestHeader('X-Filename', encodeURIComponent(selectedFile.name));
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setMediaUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const res = JSON.parse(xhr.responseText) as { driveFileId: string };
+        setEditForm(f => ({ ...f, media_url: `/api/files/download/${res.driveFileId}` }));
+      } else {
+        try {
+          const { error } = JSON.parse(xhr.responseText) as { error: string };
+          setMediaError(error ?? `Error al subir: ${xhr.status}`);
+        } catch {
+          setMediaError(`Error al subir: ${xhr.status}`);
+        }
+      }
+      setUploadingMedia(false);
+    };
+
+    xhr.onerror = () => {
+      setMediaError('Error de red durante la subida');
+      setUploadingMedia(false);
+    };
+
+    xhr.send(selectedFile);
+  };
+
+  const handleClearMedia = () => {
+    setEditForm(f => ({ ...f, media_url: '' }));
+    setMediaError('');
+    setMediaUploadProgress(0);
+  };
+
   const openEdit = (post: Post) => {
     setEditingPost(post);
     setEditForm({
@@ -174,13 +235,16 @@ export default function StaffPostsPage() {
       status: post.status,
       scheduled_for: toDatetimeLocal(post.scheduled_for),
       custom_rate_usd: post.custom_rate_usd != null ? String(post.custom_rate_usd) : '',
+      media_url: post.media_url ?? '',
     });
     setEditError('');
+    setMediaError('');
+    setMediaUploadProgress(0);
   };
 
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingPost) return;
+    if (!editingPost || uploadingMedia) return;
     setSaving(true);
     setEditError('');
     const supabase = createClient();
@@ -191,6 +255,7 @@ export default function StaffPostsPage() {
       status: editForm.status,
       scheduled_for: editForm.scheduled_for ? new Date(editForm.scheduled_for).toISOString() : null,
       custom_rate_usd: editForm.custom_rate_usd !== '' ? parseFloat(editForm.custom_rate_usd) : null,
+      media_url: editForm.media_url || null,
     }).eq('id', editingPost.id);
     if (error) { setEditError(error.message); setSaving(false); return; }
     setSaving(false);
@@ -511,6 +576,70 @@ export default function StaffPostsPage() {
                   </div>
                 </div>
 
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs font-semibold" style={{ color: '#5A6B80' }}>Archivo Multimedia (Imagen o Video)</label>
+                  <div className="flex flex-col gap-3">
+                    {editForm.media_url ? (
+                      <div className="flex flex-col gap-2">
+                        <div className="rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50 relative group" style={{ height: '140px' }}>
+                          {editForm.platform === 'tiktok' || editForm.platform === 'youtube' || editForm.title.toLowerCase().includes('video') ? (
+                            <video
+                              src={editForm.media_url}
+                              controls
+                              className="w-full h-full object-contain bg-black"
+                            />
+                          ) : (
+                            <img
+                              src={editForm.media_url}
+                              alt="Preview"
+                              className="w-full h-full object-contain"
+                            />
+                          )}
+                          <button
+                            type="button"
+                            onClick={handleClearMedia}
+                            disabled={uploadingMedia}
+                            className="absolute top-2 right-2 p-1.5 rounded-lg bg-white/90 hover:bg-white text-red-500 shadow-sm border border-slate-100 disabled:opacity-40"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <input
+                          type="file"
+                          id="edit-post-media-upload"
+                          accept="image/*,video/*"
+                          onChange={handleMediaUpload}
+                          className="hidden"
+                          disabled={uploadingMedia}
+                        />
+                        <label
+                          htmlFor="edit-post-media-upload"
+                          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all border border-dashed border-slate-300 hover:bg-[rgba(10,15,28,0.03)] cursor-pointer"
+                          style={{ color: '#5A6B80', cursor: uploadingMedia ? 'not-allowed' : 'pointer' }}
+                        >
+                          {uploadingMedia ? (
+                            <div className="flex items-center gap-2">
+                              <Loader2 size={14} className="animate-spin" />
+                              <span>Subiendo ({mediaUploadProgress}%)</span>
+                            </div>
+                          ) : (
+                            <>
+                              <Camera size={14} />
+                              <span>Subir multimedia</span>
+                            </>
+                          )}
+                        </label>
+                      </div>
+                    )}
+                    {mediaError && (
+                      <p className="text-[10px] text-red-500 font-semibold">{mediaError}</p>
+                    )}
+                  </div>
+                </div>
+
                 {editError && (
                   <div className="px-4 py-3 rounded-xl text-xs font-medium"
                     style={{ background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}>
@@ -523,7 +652,7 @@ export default function StaffPostsPage() {
                     className="px-4 py-2.5 rounded-xl text-sm font-bold" style={{ background: '#EDE9E1', color: '#5A6B80' }}>
                     Cancelar
                   </button>
-                  <button type="submit" disabled={saving}
+                  <button type="submit" disabled={saving || uploadingMedia}
                     className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50"
                     style={{ background: '#0A0F1C', color: '#ffffff' }}>
                     {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}

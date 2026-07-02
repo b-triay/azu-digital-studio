@@ -107,10 +107,29 @@ export default function ApprovalsPage() {
 
   const handleAction = async (id: string, action: 'approved' | 'rejected') => {
     const supabase = createClient();
+    const comment = comments[id]?.trim() || null;
+
+    // 1. Update post status
     await supabase
       .from('posts')
-      .update({ status: action })
+      .update({ status: action === 'approved' ? 'approved' : 'rejected' })
       .eq('id', id);
+
+    // 2. Insert approval action and comment
+    await supabase
+      .from('approvals')
+      .insert({
+        post_id: id,
+        action: action,
+        comment: comment,
+      });
+
+    // 3. Trigger email notification
+    fetch(`/api/posts/${id}/notify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, comment }),
+    }).catch(err => console.error('Failed to send email notification:', err));
 
     setItems((prev) => prev.map((i) => (i.id === id ? { ...i, status: action } : i)));
     const nextPending = items.find((i) => i.id !== id && i.status === 'pending');
