@@ -17,6 +17,7 @@ interface ApprovalItem {
   caption: string | null;
   scheduled: string;
   status: Status;
+  media_url: string | null;
 }
 
 const PLATFORM_CONFIG: Record<string, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
@@ -73,7 +74,7 @@ export default function ApprovalsPage() {
 
     const { data: posts } = await supabase
       .from('posts')
-      .select('id, platform, title, caption, scheduled_for, status')
+      .select('id, platform, title, caption, scheduled_for, status, media_url')
       .eq('client_id', clientRow.id)
       .in('status', ['pending_approval', 'approved', 'rejected'])
       .order('scheduled_for', { ascending: true });
@@ -85,6 +86,7 @@ export default function ApprovalsPage() {
       caption: p.caption ?? null,
       scheduled: formatDate(p.scheduled_for),
       status: dbStatusToLocal(p.status),
+      media_url: p.media_url ?? null,
     }));
 
     setItems(mapped);
@@ -335,15 +337,33 @@ export default function ApprovalsPage() {
 
                         <div>
                           <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#8A9BB0' }}>{t('approvals.mediaLabel')}</p>
-                          <div
-                            className="rounded-xl flex items-center justify-center"
-                            style={{ height: '200px', background: 'linear-gradient(135deg, rgba(10,15,28,0.05) 0%, rgba(184,151,108,0.07) 100%)', border: '1.5px dashed rgba(10,15,28,0.15)' }}
-                          >
-                            <div className="text-center">
-                              <p className="text-sm font-semibold" style={{ color: '#8A9BB0' }}>{t('approvals.mediaPreview')}</p>
-                              <p className="text-xs mt-1" style={{ color: '#cbd5e1' }}>{t('approvals.mediaUploadHint')}</p>
+                          {selected.media_url ? (
+                            <div className="rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50" style={{ minHeight: '200px' }}>
+                              {selected.platform === 'tiktok' || selected.platform === 'youtube' || selected.title.toLowerCase().includes('video') || selected.title.toLowerCase().includes('reel') ? (
+                                <video
+                                  src={selected.media_url}
+                                  controls
+                                  className="w-full max-h-[350px] object-contain bg-black"
+                                />
+                              ) : (
+                                <img
+                                  src={selected.media_url}
+                                  alt={selected.title}
+                                  className="w-full max-h-[350px] object-contain"
+                                />
+                              )}
                             </div>
-                          </div>
+                          ) : (
+                            <div
+                              className="rounded-xl flex items-center justify-center"
+                              style={{ height: '200px', background: 'linear-gradient(135deg, rgba(10,15,28,0.05) 0%, rgba(184,151,108,0.07) 100%)', border: '1.5px dashed rgba(10,15,28,0.15)' }}
+                            >
+                              <div className="text-center">
+                                <p className="text-sm font-semibold" style={{ color: '#8A9BB0' }}>{t('approvals.mediaPreview')}</p>
+                                <p className="text-xs mt-1" style={{ color: '#cbd5e1' }}>{t('approvals.mediaUploadHint')}</p>
+                              </div>
+                            </div>
+                          )}
                         </div>
 
                         {selected.status === 'pending' && (

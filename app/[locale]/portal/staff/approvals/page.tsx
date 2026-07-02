@@ -24,6 +24,7 @@ interface ApprovalItem {
   scheduledRaw: string | null;
   status: ApprovalStatus;
   clientComment?: string;
+  media_url?: string | null;
 }
 
 const PLATFORM_CONFIG: Record<Platform, { label: string; color: string; bg: string; Icon: React.ElementType }> = {
@@ -88,7 +89,7 @@ export default function StaffApprovalsPage() {
     Promise.all([
       supabase
         .from('posts')
-        .select('id, title, caption, scheduled_for, platform, status, client_id')
+        .select('id, title, caption, scheduled_for, platform, status, client_id, media_url')
         .in('status', ['pending_approval', 'approved', 'rejected'])
         .order('created_at', { ascending: false }),
       supabase.from('clients').select('id, name, initials, color'),
@@ -100,7 +101,7 @@ export default function StaffApprovalsPage() {
       const mapped: ApprovalItem[] = posts.map((r: {
         id: string; title: string; caption: string;
         scheduled_for: string | null; platform: string;
-        status: string; client_id: string;
+        status: string; client_id: string; media_url?: string | null;
       }) => {
         const cl = clientMap.get(r.client_id) as { name: string; initials: string; color: string } | undefined;
         return {
@@ -115,6 +116,7 @@ export default function StaffApprovalsPage() {
           scheduled: formatShortDate(r.scheduled_for),
           scheduledRaw: r.scheduled_for,
           status: mapStatus(r.status),
+          media_url: r.media_url ?? null,
         };
       });
       setItems(mapped);
@@ -486,19 +488,37 @@ export default function StaffApprovalsPage() {
                       {/* Media */}
                       <div>
                         <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: '#8A9BB0' }}>{t('staffApprovals.mediaLabel')}</p>
-                        <div
-                          className="rounded-xl flex flex-col items-center justify-center gap-2"
-                          style={{
-                            height: '180px',
-                            background: 'rgba(184,151,108,0.05)',
-                            border: '1px solid rgba(184,151,108,0.18)',
-                          }}
-                        >
-                          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(184,151,108,0.12)' }}>
-                            <Camera size={18} style={{ color: '#B8976C' }} />
+                        {selected.media_url ? (
+                          <div className="rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50" style={{ minHeight: '180px' }}>
+                            {selected.platform === 'tiktok' || selected.platform === 'youtube' || selected.title.toLowerCase().includes('video') || selected.title.toLowerCase().includes('reel') ? (
+                              <video
+                                src={selected.media_url}
+                                controls
+                                className="w-full max-h-[300px] object-contain bg-black"
+                              />
+                            ) : (
+                              <img
+                                src={selected.media_url}
+                                alt={selected.title}
+                                className="w-full max-h-[300px] object-contain"
+                              />
+                            )}
                           </div>
-                          <p className="text-xs font-medium" style={{ color: '#8A9BB0' }}>{t('staffApprovals.mediaNotUploaded')}</p>
-                        </div>
+                        ) : (
+                          <div
+                            className="rounded-xl flex flex-col items-center justify-center gap-2"
+                            style={{
+                              height: '180px',
+                              background: 'rgba(184,151,108,0.05)',
+                              border: '1px solid rgba(184,151,108,0.18)',
+                            }}
+                          >
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: 'rgba(184,151,108,0.12)' }}>
+                              <Camera size={18} style={{ color: '#B8976C' }} />
+                            </div>
+                            <p className="text-xs font-medium" style={{ color: '#8A9BB0' }}>{t('staffApprovals.mediaNotUploaded')}</p>
+                          </div>
+                        )}
                       </div>
 
                       {/* Client comment on rejection */}

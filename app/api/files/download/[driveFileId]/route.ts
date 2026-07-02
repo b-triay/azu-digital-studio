@@ -18,25 +18,29 @@ export async function GET(
   const role = user.user_metadata?.role as string | undefined;
 
   if (role !== 'staff' && role !== 'admin') {
-    // Client: verify file belongs to their client record
-    const [{ data: fileRecord }, { data: clientRecord }] = await Promise.all([
+    // Client: verify file belongs to their client record or a post assigned to them
+    const [{ data: fileRecord }, { data: clientRecord }, { data: postRecord }] = await Promise.all([
       supabase
         .from('client_files')
         .select('client_id')
         .eq('drive_file_id', driveFileId)
-        .single(),
+        .maybeSingle(),
       supabase
         .from('clients')
         .select('id')
         .eq('user_id', user.id)
-        .single(),
+        .maybeSingle(),
+      supabase
+        .from('posts')
+        .select('client_id')
+        .like('media_url', `%${driveFileId}%`)
+        .maybeSingle(),
     ]);
 
-    if (
-      !fileRecord ||
-      !clientRecord ||
-      fileRecord.client_id !== clientRecord.id
-    ) {
+    const hasFileAccess = fileRecord && clientRecord && fileRecord.client_id === clientRecord.id;
+    const hasPostAccess = postRecord && clientRecord && postRecord.client_id === clientRecord.id;
+
+    if (!hasFileAccess && !hasPostAccess) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }

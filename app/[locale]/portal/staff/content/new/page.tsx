@@ -66,6 +66,12 @@ export default function NewPostPage() {
   const [saving, setSaving]               = useState(false);
   const [directPublish, setDirectPublish] = useState(false);
 
+  const [mediaFile, setMediaFile]         = useState<File | null>(null);
+  const [mediaUrl, setMediaUrl]           = useState('');
+  const [uploadingMedia, setUploadingMedia] = useState(false);
+  const [mediaUploadProgress, setMediaUploadProgress] = useState(0);
+  const [mediaError, setMediaError]       = useState('');
+
   const [clients, setClients] = useState<DBClient[]>([]);
   const [staff, setStaff]     = useState<DBStaff[]>([]);
 
@@ -101,10 +107,62 @@ export default function NewPostPage() {
   const isNearLimit       = charCount > maxChars * 0.8;
   const isOverLimit       = charCount > maxChars;
   const effectiveRate     = customRate !== '' ? parseFloat(customRate) : (ALL_CONTENT_TYPES[contentType]?.rate ?? 0);
-  const isValid           = clientId && title.trim() && caption.trim() && scheduledDate && contentType && !isOverLimit && customRate !== '' && !isNaN(effectiveRate) && effectiveRate >= 0;
+  const isValid           = clientId && title.trim() && caption.trim() && scheduledDate && contentType && !isOverLimit && customRate !== '' && !isNaN(effectiveRate) && effectiveRate >= 0 && !uploadingMedia;
 
   const toggleStaff = (id: string) =>
     setAssignedStaff((prev) => prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]);
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    setMediaFile(selectedFile);
+    setUploadingMedia(true);
+    setMediaError('');
+    setMediaUploadProgress(0);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/files/upload');
+    xhr.setRequestHeader('Content-Type', selectedFile.type || 'application/octet-stream');
+    xhr.setRequestHeader('X-Filename', encodeURIComponent(selectedFile.name));
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setMediaUploadProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        const res = JSON.parse(xhr.responseText) as { driveFileId: string };
+        setMediaUrl(`/api/files/download/${res.driveFileId}`);
+      } else {
+        try {
+          const { error } = JSON.parse(xhr.responseText) as { error: string };
+          setMediaError(error ?? `Error al subir: ${xhr.status}`);
+        } catch {
+          setMediaError(`Error al subir: ${xhr.status}`);
+        }
+        setMediaFile(null);
+      }
+      setUploadingMedia(false);
+    };
+
+    xhr.onerror = () => {
+      setMediaError('Error de red durante la subida');
+      setMediaFile(null);
+      setUploadingMedia(false);
+    };
+
+    xhr.send(selectedFile);
+  };
+
+  const handleClearMedia = () => {
+    setMediaFile(null);
+    setMediaUrl('');
+    setMediaError('');
+    setMediaUploadProgress(0);
+  };
 
   const handleSubmit = async (action: PostAction) => {
     if (!isValid || saving) return;
@@ -124,6 +182,7 @@ export default function NewPostPage() {
           title: title.trim(),
           caption: caption.trim(),
           scheduled_for: scheduledFor,
+          media_url: mediaUrl || null,
           status: action === 'draft' ? 'draft' : action === 'publish' ? 'published' : 'pending_approval',
         })
         .select('id')
@@ -149,6 +208,10 @@ export default function NewPostPage() {
       setScheduledDate('');
       setScheduledTime('');
       setAssignedStaff([]);
+      setMediaFile(null);
+      setMediaUrl('');
+      setMediaError('');
+      setMediaUploadProgress(0);
     }, 2500);
   };
 
@@ -503,6 +566,66 @@ export default function NewPostPage() {
             </div>
           </div>
 
+          {/* Media Upload */}
+          <div
+            className="rounded-2xl p-5"
+            style={{ background: '#ffffff', border: '1px solid rgba(10,15,28,0.08)', boxShadow: '0 1px 4px rgba(10,15,28,0.05)' }}
+          >
+            <label className="block text-xs font-bold uppercase tracking-widest mb-3" style={{ color: '#8A9BB0' }}>
+              Archivo Multimedia (Imagen o Video)
+            </label>
+            <div className="flex flex-col gap-3">
+              {mediaFile ? (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-[rgba(10,15,28,0.02)] border border-[rgba(10,15,28,0.07)]">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold truncate" style={{ color: '#334155' }}>
+                      {mediaFile.name}
+                    </p>
+                    {uploadingMedia ? (
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5">
+                        <div
+                          className="bg-[#B8976C] h-1.5 rounded-full transition-all duration-300"
+                          style={{ width: `${mediaUploadProgress}%` }}
+                        />
+                      </div>
+                    ) : (
+                      <p className="text-[10px] mt-0.5 text-green-600 font-medium">✓ Subido a Google Drive</p>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleClearMedia}
+                    disabled={uploadingMedia}
+                    className="p-1.5 rounded-lg hover:bg-[rgba(10,15,28,0.07)] ml-3 disabled:opacity-40"
+                  >
+                    <X size={14} style={{ color: '#ef4444' }} />
+                  </button>
+                </div>
+              ) : (
+                <div>
+                  <input
+                    type="file"
+                    id="post-media-upload"
+                    accept="image/*,video/*"
+                    onChange={handleMediaUpload}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="post-media-upload"
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all border border-dashed border-slate-300 hover:bg-[rgba(10,15,28,0.03)] cursor-pointer"
+                    style={{ color: '#5A6B80' }}
+                  >
+                    <Camera size={14} />
+                    Seleccionar archivo multimedia
+                  </label>
+                </div>
+              )}
+              {mediaError && (
+                <p className="text-[10px] text-red-500 font-semibold">{mediaError}</p>
+              )}
+            </div>
+          </div>
+
           {/* Direct publish toggle */}
           <div
             className="rounded-2xl px-5 py-4 flex items-center justify-between"
@@ -605,16 +728,34 @@ export default function NewPostPage() {
                   {selectedPlatform.label}
                 </span>
               </div>
-              <div
-                className="rounded-xl flex items-center justify-center"
-                style={{
-                  height: '160px',
-                  background: 'linear-gradient(135deg, rgba(10,15,28,0.05) 0%, rgba(184,151,108,0.07) 100%)',
-                  border: '1.5px dashed rgba(10,15,28,0.12)',
-                }}
-              >
-                <p className="text-xs font-medium" style={{ color: '#cbd5e1' }}>{t('newPost.mediaPlaceholder')}</p>
-              </div>
+              {mediaUrl ? (
+                <div className="rounded-xl overflow-hidden border border-slate-100 flex items-center justify-center bg-slate-50" style={{ height: '160px' }}>
+                  {platform === 'tiktok' || platform === 'youtube' || title.toLowerCase().includes('video') || title.toLowerCase().includes('reel') ? (
+                    <video
+                      src={mediaUrl}
+                      controls
+                      className="w-full h-full object-contain bg-black"
+                    />
+                  ) : (
+                    <img
+                      src={mediaUrl}
+                      alt="Preview"
+                      className="w-full h-full object-contain"
+                    />
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="rounded-xl flex items-center justify-center"
+                  style={{
+                    height: '160px',
+                    background: 'linear-gradient(135deg, rgba(10,15,28,0.05) 0%, rgba(184,151,108,0.07) 100%)',
+                    border: '1.5px dashed rgba(10,15,28,0.12)',
+                  }}
+                >
+                  <p className="text-xs font-medium" style={{ color: '#cbd5e1' }}>{t('newPost.mediaPlaceholder')}</p>
+                </div>
+              )}
               <div className="min-h-[60px]">
                 {caption ? (
                   <p className="text-xs leading-relaxed" style={{ color: '#334155' }}>
