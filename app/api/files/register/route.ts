@@ -34,8 +34,6 @@ export async function POST(req: NextRequest) {
       name,
       size_bytes: sizeBytes,
       type,
-      file_path: null,
-      file_url: null,
     })
     .select('id')
     .single();
