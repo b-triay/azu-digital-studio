@@ -72,7 +72,7 @@ export default function PrivacyPolicyPage() {
               <ul className="list-disc pl-5 flex flex-col gap-1 text-slate-400">
                 <li><strong>Información de Registro:</strong> Nombre, correo electrónico, y contraseña de acceso (encriptada de forma segura mediante Supabase Auth).</li>
                 <li><strong>Material Multimedia:</strong> Videos, imágenes y assets creativos que subes para su revisión o programación en redes sociales. Estos archivos se almacenan de forma segura en Google Drive a través de nuestra cuenta de servicio restringida.</li>
-                <li><strong>Datos de Facturación:</strong> Procesados directamente de forma segura por Stripe. Nosotros no almacenamos ni tenemos acceso a los datos de tu tarjeta de crédito o claves bancarias.</li>
+                <li><strong>Datos de Facturación:</strong> Procesados de forma segura a través de plataformas externas de pago (como Takenos, Mercado Pago o transferencias bancarias). Nosotros no almacenamos ni tenemos acceso a los datos de tu tarjeta de crédito o claves bancarias.</li>
               </ul>
             </div>
 
@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
               <ul className="list-disc pl-5 flex flex-col gap-1 text-slate-400">
                 <li>Gestionar tu cuenta de cliente y brindarte acceso al portal de aprobaciones y calendario de publicaciones.</li>
                 <li>Facilitar la subida, procesamiento y descarga de archivos de material multimedia asignados a tus publicaciones.</li>
-                <li>Procesar los cobros de tus planes de forma automática y segura utilizando la plataforma de Stripe.</li>
+                <li>Procesar los cobros de tus planes de forma segura utilizando los métodos de pago provistos.</li>
                 <li>Enviarte alertas y notificaciones críticas del portal por correo electrónico (como solicitudes de cambios o confirmaciones de publicaciones aprobadas) mediante Resend.</li>
               </ul>
             </div>

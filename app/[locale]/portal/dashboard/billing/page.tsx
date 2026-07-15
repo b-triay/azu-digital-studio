@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { CreditCard, CheckCircle, AlertCircle, Clock, XCircle, ExternalLink } from 'lucide-react';
+import { CreditCard, CheckCircle, AlertCircle, Clock, XCircle, X, Mail } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 interface BillingData {
@@ -28,8 +28,8 @@ export default function BillingPage() {
   const [billing, setBilling]   = useState<BillingData | null>(null);
   const [plans, setPlans]       = useState<{ id: string; name: string; price_usd: number | null; stripe_price_id: string | null }[]>([]);
   const [loading, setLoading]   = useState(true);
-  const [working, setWorking]   = useState(false);
   const [toast, setToast]       = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<{ id: string; name: string; price_usd: number | null } | null>(null);
 
   const showToast = (type: 'success' | 'error', msg: string) => {
     setToast({ type, msg });
@@ -73,38 +73,6 @@ export default function BillingPage() {
     if (searchParams.get('success') === '1') showToast('success', '¡Pago exitoso! Tu suscripción está activa.');
     if (searchParams.get('canceled') === '1') showToast('error', 'Pago cancelado. Puedes intentarlo nuevamente.');
   }, [load, searchParams]);
-
-  const handleCheckout = async (planId: string) => {
-    setWorking(true);
-    const res = await fetch('/api/billing/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ planId, locale }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      showToast('error', data.error ?? 'Error al crear sesión de pago');
-      setWorking(false);
-    }
-  };
-
-  const handlePortal = async () => {
-    setWorking(true);
-    const res = await fetch('/api/billing/portal', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ locale }),
-    });
-    const data = await res.json();
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      showToast('error', data.error ?? 'Error al abrir el portal de facturación');
-      setWorking(false);
-    }
-  };
 
   if (loading) {
     return (
@@ -167,17 +135,11 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {isActive && billing?.stripeCustomerId && (
+        {isActive && (
           <div className="mt-5 pt-5" style={{ borderTop: '1px solid rgba(10,15,28,0.06)' }}>
-            <button
-              onClick={handlePortal}
-              disabled={working}
-              className="flex items-center gap-2 text-sm font-semibold transition-opacity disabled:opacity-50"
-              style={{ color: '#0A0F1C' }}
-            >
-              <ExternalLink size={14} />
-              Gestionar suscripción en Stripe
-            </button>
+            <p className="text-xs font-medium" style={{ color: '#5A6B80', lineHeight: '1.5' }}>
+              Para modificar, pausar o cancelar tu suscripción activa, por favor ponete en contacto con nuestro equipo de soporte escribiendo a <a href="mailto:staff@azudigitalstudio.com" className="font-bold underline transition-opacity hover:opacity-80" style={{ color: '#0A0F1C' }}>staff@azudigitalstudio.com</a>.
+            </p>
           </div>
         )}
       </div>
@@ -189,7 +151,7 @@ export default function BillingPage() {
             Elegí un plan para comenzar
           </h2>
           <div className="flex flex-col gap-3">
-            {plans.filter((p) => p.stripe_price_id).map((plan) => (
+            {plans.map((plan) => (
               <div
                 key={plan.id}
                 className="rounded-2xl p-5 flex items-center justify-between gap-4"
@@ -202,16 +164,15 @@ export default function BillingPage() {
                   )}
                 </div>
                 <button
-                  onClick={() => handleCheckout(plan.id)}
-                  disabled={working}
-                  className="px-5 py-2 rounded-xl text-sm font-bold transition-opacity disabled:opacity-50"
+                  onClick={() => setSelectedPlan(plan)}
+                  className="px-5 py-2 rounded-xl text-sm font-bold transition-opacity hover:opacity-90"
                   style={{ background: '#0A0F1C', color: '#ffffff' }}
                 >
-                  {working ? 'Procesando…' : 'Suscribirme'}
+                  Suscribirme
                 </button>
               </div>
             ))}
-            {plans.filter((p) => p.stripe_price_id).length === 0 && (
+            {plans.length === 0 && (
               <div
                 className="rounded-2xl p-8 text-center"
                 style={{ background: '#ffffff', border: '1px solid rgba(10,15,28,0.08)' }}
@@ -223,6 +184,94 @@ export default function BillingPage() {
             )}
           </div>
         </>
+      )}
+
+      {/* Modal de instrucciones de pago */}
+      {selectedPlan && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+          onClick={() => setSelectedPlan(null)}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-3xl p-6 shadow-2xl relative border border-slate-100 flex flex-col gap-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold" style={{ color: '#0A0F1C' }}>
+                Cómo suscribirte a {selectedPlan.name}
+              </h2>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="p-1.5 rounded-lg hover:bg-[rgba(10,15,28,0.07)] text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <p className="text-sm leading-relaxed" style={{ color: '#5A6B80' }}>
+              Para brindarte la mejor cotización y evitar cargos adicionales de impuestos, procesamos nuestros cobros de forma personalizada:
+            </p>
+
+            <div className="flex flex-col gap-3">
+              {/* Opción 1: Transferencia ACH (EE. UU.) */}
+              <div className="flex gap-3 items-start p-4 rounded-xl border border-slate-100" style={{ background: '#F8FAFC' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-600">
+                  <span className="font-bold text-xs">ACH</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#0A0F1C' }}>Transferencia ACH (EE. UU.)</p>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#5A6B80' }}>
+                    Ideal para clientes estadounidenses. Procesado mediante ARQ (DolarApp) con $0 costo extra de procesamiento.
+                  </p>
+                </div>
+              </div>
+
+              {/* Opción 2: Tarjeta de Crédito / Débito (Takenos) */}
+              <div className="flex gap-3 items-start p-4 rounded-xl border border-slate-100" style={{ background: '#F8FAFC' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-emerald-50 text-emerald-600">
+                  <CreditCard size={16} />
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#0A0F1C' }}>Tarjeta de Crédito / Apple & Google Pay</p>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#5A6B80' }}>
+                    Aceptamos Visa y Mastercard internacionales. Procesado de forma segura a través de Takenos.
+                  </p>
+                </div>
+              </div>
+
+              {/* Opción 3: Pesos Argentinos (Mercado Pago) */}
+              <div className="flex gap-3 items-start p-4 rounded-xl border border-slate-100" style={{ background: '#F8FAFC' }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-sky-50 text-sky-600">
+                  <span className="font-bold text-xs">ARS</span>
+                </div>
+                <div>
+                  <p className="text-sm font-bold" style={{ color: '#0A0F1C' }}>Mercado Pago (Exclusivo Argentina)</p>
+                  <p className="text-xs mt-0.5 leading-relaxed" style={{ color: '#5A6B80' }}>
+                    Pagá en pesos locales sin recargo del 60% de Impuesto PAIS y percepciones.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <a
+                href={`mailto:staff@azudigitalstudio.com?subject=Suscripcion al Plan ${selectedPlan.name} - Azu Digital Studio&body=Hola equipo de Azu Digital Studio,%0D%0A%0D%0AMe gustaria suscribirme al Plan ${selectedPlan.name} ($${selectedPlan.price_usd} USD/mes).%0D%0A%0D%0APor favor, envienme los datos bancarios para transferir (ACH) o el link de cobro con tarjeta.%0D%0A%0D%0ASaludos!`}
+                className="w-full py-3.5 rounded-xl text-center text-sm font-bold text-white flex items-center justify-center gap-2 transition-opacity hover:opacity-90"
+                style={{ background: '#0A0F1C' }}
+              >
+                <Mail size={16} />
+                Solicitar Datos de Pago
+              </a>
+              <button
+                onClick={() => setSelectedPlan(null)}
+                className="w-full py-2.5 rounded-xl text-center text-xs font-semibold border transition-colors hover:bg-slate-50"
+                style={{ color: '#5A6B80', borderColor: 'rgba(10,15,28,0.12)' }}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

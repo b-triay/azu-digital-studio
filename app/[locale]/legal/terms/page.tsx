@@ -70,9 +70,9 @@ export default function TermsAndConditionsPage() {
                 Azu Digital Studio ofrece sus servicios bajo modelos de suscripción periódica o tarifas acordadas:
               </p>
               <ul className="list-disc pl-5 flex flex-col gap-1 text-slate-400">
-                <li>Los pagos se procesan de forma recurrente y segura a través de **Stripe** conforme al plan seleccionado.</li>
+                <li>Los pagos se procesan de forma segura a través de plataformas de pago externas (como Takenos, Mercado Pago o transferencias bancarias directas) conforme al plan seleccionado.</li>
                 <li>Es responsabilidad del cliente mantener un método de pago válido. La falta de pago resultará en la suspensión del acceso al portal y la pausa de los entregables y publicaciones.</li>
-                <li>Puedes cancelar tu suscripción en cualquier momento desde tu panel de facturación. La cancelación evitará el cobro del próximo período, pero no da derecho a reembolsos por períodos ya facturados o transcurridos.</li>
+                <li>Puedes solicitar la cancelación o modificación de tu suscripción en cualquier momento poniéndote en contacto con nuestro equipo de soporte.</li>
               </ul>
             </div>
 
