@@ -435,7 +435,20 @@
     },
     "staffFiles": {
       "title": "Arquivos",
-      "subtitle": "Arquivos compartilhados com clientes de todas as contas."
+      "subtitle": "Arquivos compartilhados com clientes de todas las contas.",
+      "uploadFiles": "Enviar Arquivos",
+      "selectClient": "Selecione o cliente para associar...",
+      "selectFiles": "Selecionar arquivos",
+      "uploading": "Enviando...",
+      "dragDrop": "Arraste e solte os arquivos aqui",
+      "selectClientFirst": "Selecione um cliente primeiro",
+      "formatsLabel": "Imagens, vídeos, PDFs, documentos · Qualquer tamanho",
+      "allClients": "Todos os clientes",
+      "emptyFolder": "Esta pasta está vazia",
+      "newFolder": "Nova pasta",
+      "enterFolderName": "Digite o nome da nova pasta:",
+      "deleteConfirm": "Excluir \"{name}\"?",
+      "folderType": "Pasta de arquivos"
     },
     "payroll": {
       "title": "Pagamentos",

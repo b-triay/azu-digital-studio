@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Upload, FileText, FileImage, Film, FileIcon, Download, Trash2, Loader2, CloudUpload, Filter, Folder, ArrowLeft, ChevronRight, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
@@ -179,7 +179,7 @@ export default function StaffFilesPage() {
   };
 
   const handleDelete = async (file: ClientFile) => {
-    if (!confirm(`Delete "${file.name}"?`)) return;
+    if (!confirm(t('staffFiles.deleteConfirm').replace('{name}', file.name))) return;
     setDeleting(file.id);
 
     const res = await fetch(`/api/files/${file.drive_file_id}`, {
@@ -263,7 +263,7 @@ export default function StaffFilesPage() {
   }, [files, currentFolder, filterClient]);
 
   const handleCreateFolder = () => {
-    const name = prompt('Ingrese el nombre de la nueva carpeta:');
+    const name = prompt(t('staffFiles.enterFolderName'));
     if (!name || !name.trim()) return;
     const cleanName = name.trim().replace(/\//g, ''); // Prevent slashes inside folder name
     const folderPath = currentFolder ? `${currentFolder}/${cleanName}` : cleanName;
@@ -310,7 +310,7 @@ export default function StaffFilesPage() {
         style={{ background: '#ffffff', border: '1px solid rgba(10,15,28,0.08)', boxShadow: '0 1px 4px rgba(10,15,28,0.05)' }}
       >
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#8A9BB0' }}>Upload Files</p>
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#8A9BB0' }}>{t('staffFiles.uploadFiles')}</p>
           {currentFolder && (
             <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: 'rgba(184,151,108,0.1)', color: '#B8976C' }}>
               Subiendo a: {currentFolder}
@@ -330,7 +330,7 @@ export default function StaffFilesPage() {
               fontFamily: 'inherit',
             }}
           >
-            <option value="">Select client to associate…</option>
+            <option value="">{t('staffFiles.selectClient')}</option>
             {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
           <button
@@ -340,7 +340,7 @@ export default function StaffFilesPage() {
             style={{ background: '#0A0F1C', color: '#fff', boxShadow: '0 2px 8px rgba(10,15,28,0.2)' }}
           >
             {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-            {uploading ? 'Subiendo…' : 'Seleccionar archivos'}
+            {uploading ? t('staffFiles.uploading') : t('staffFiles.selectFiles')}
           </button>
           <input
             ref={fileInputRef}
@@ -366,9 +366,9 @@ export default function StaffFilesPage() {
         >
           <CloudUpload size={28} style={{ color: dragOver ? '#0A0F1C' : '#cbd5e1' }} />
           <p className="text-sm font-medium" style={{ color: '#8A9BB0' }}>
-            {uploadClient ? 'Drag and drop files here' : 'Select a client first'}
+            {uploadClient ? t('staffFiles.dragDrop') : t('staffFiles.selectClientFirst')}
           </p>
-          <p className="text-xs" style={{ color: '#cbd5e1' }}>Images, videos, PDFs, documents · Any size</p>
+          <p className="text-xs" style={{ color: '#cbd5e1' }}>{t('staffFiles.formatsLabel')}</p>
         </div>
 
         {/* Progress bar */}
@@ -433,7 +433,7 @@ export default function StaffFilesPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-slate-200 cursor-pointer border"
               style={{ borderColor: 'rgba(10,15,28,0.12)', color: '#0A0F1C', background: '#fff' }}
             >
-              <Plus size={12} /> Nueva carpeta
+              <Plus size={12} /> {t('staffFiles.newFolder')}
             </button>
             <div className="flex items-center gap-1">
               <Filter size={12} style={{ color: '#8A9BB0' }} className="ml-1" />
@@ -443,7 +443,7 @@ export default function StaffFilesPage() {
                 className="text-xs px-2 py-1.5 rounded-lg outline-none cursor-pointer"
                 style={{ border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', background: '#fff', fontFamily: 'inherit' }}
               >
-                <option value="all">All clients</option>
+                <option value="all">{t('staffFiles.allClients')}</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
@@ -457,7 +457,7 @@ export default function StaffFilesPage() {
         ) : parsedFolders.length === 0 && currentLevelFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <FileIcon size={32} style={{ color: '#e2e8f0' }} />
-            <p className="text-sm font-semibold mt-3" style={{ color: '#8A9BB0' }}>Esta carpeta está vacía</p>
+            <p className="text-sm font-semibold mt-3" style={{ color: '#8A9BB0' }}>{t('staffFiles.emptyFolder')}</p>
             {currentFolder && (
               <button
                 onClick={() => setCurrentFolder(prev => prev.includes('/') ? prev.split('/').slice(0, -1).join('/') : '')}
@@ -486,7 +486,7 @@ export default function StaffFilesPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold truncate" style={{ color: '#0A0F1C' }}>{folder}</p>
-                  <p className="text-[11px]" style={{ color: '#8A9BB0' }}>Carpeta de archivos</p>
+                  <p className="text-[11px]" style={{ color: '#8A9BB0' }}>{t('staffFiles.folderType')}</p>
                 </div>
                 <ChevronRight size={14} className="text-slate-400" />
               </div>

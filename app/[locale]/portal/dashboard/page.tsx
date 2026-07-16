@@ -69,6 +69,46 @@ export default function DashboardOverviewPage() {
   const [subscriptionStatus, setSubscriptionStatus] = useState<string>('inactive');
   const [planName, setPlanName] = useState<string | null>(null);
 
+  // Interactive Metrics States & Data
+  const [activeMetric, setActiveMetric] = useState<'reach' | 'engagement' | 'followers'>('reach');
+  const [hoveredPoint, setHoveredPoint] = useState<{ index: number; x: number; y: number; val: string; date: string } | null>(null);
+
+  const METRICS_DATA = {
+    reach: {
+      label: 'Alcance',
+      change: '+24.8%',
+      points: [30, 48, 35, 78, 92],
+      values: ['2,410', '3,840', '2,800', '6,230', '8,150'],
+      dates: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5'],
+    },
+    engagement: {
+      label: 'Interacciones',
+      change: '+18.2%',
+      points: [22, 28, 48, 42, 65],
+      values: ['185', '240', '412', '360', '524'],
+      dates: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5'],
+    },
+    followers: {
+      label: 'Seguidores',
+      change: '+4.5%',
+      points: [80, 84, 88, 93, 100],
+      values: ['1,020', '1,070', '1,120', '1,190', '1,280'],
+      dates: ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4', 'Semana 5'],
+    },
+  };
+
+  const getCoords = (points: number[]) => {
+    const svgWidth = 500;
+    const svgHeight = 120;
+    const paddingX = 30;
+    const paddingY = 15;
+    return points.map((p, idx) => {
+      const x = paddingX + (idx * (svgWidth - 2 * paddingX)) / (points.length - 1);
+      const y = (svgHeight - paddingY) - (p / 100) * (svgHeight - 2 * paddingY);
+      return { x, y };
+    });
+  };
+
   const load = useCallback(async () => {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -283,6 +323,180 @@ export default function DashboardOverviewPage() {
             </Link>
           );
         })}
+      </motion.div>
+
+      {/* ── Metrics Chart Section ── */}
+      <motion.div
+        className="rounded-2xl p-5"
+        style={{
+          background: '#ffffff',
+          border: '1px solid rgba(10,15,28,0.08)',
+          boxShadow: '0 1px 4px rgba(10,15,28,0.05)',
+        }}
+        {...fadeUp(0.05)}
+      >
+        {/* Chart Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div>
+            <h3 className="text-sm font-bold" style={{ color: '#0A0F1C' }}>Rendimiento de Canales</h3>
+            <p className="text-xs mt-0.5" style={{ color: '#8A9BB0' }}>Monitoreá el alcance y rendimiento de tus redes</p>
+          </div>
+          
+          <div className="flex gap-1.5 p-1 rounded-xl bg-slate-50 border border-slate-100 flex-wrap">
+            {(['reach', 'engagement', 'followers'] as const).map((m) => {
+              const isActive = activeMetric === m;
+              return (
+                <button
+                  key={m}
+                  onClick={() => {
+                    setActiveMetric(m);
+                    setHoveredPoint(null);
+                  }}
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer"
+                  style={{
+                    background: isActive ? '#0A0F1C' : 'transparent',
+                    color: isActive ? '#ffffff' : '#5A6B80',
+                  }}
+                >
+                  {METRICS_DATA[m].label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Chart Body */}
+        <div className="grid md:grid-cols-[200px_1fr] gap-6 items-center">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-semibold">Total Mensual</span>
+            <div className="flex items-baseline gap-2 mt-1">
+              <h2 className="text-3xl font-black tracking-tight" style={{ color: '#0A0F1C' }}>
+                {METRICS_DATA[activeMetric].values[METRICS_DATA[activeMetric].values.length - 1]}
+              </h2>
+              <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                {METRICS_DATA[activeMetric].change}
+              </span>
+            </div>
+            <p className="text-xs mt-1" style={{ color: '#8A9BB0' }}>En comparación al mes anterior</p>
+          </div>
+
+          <div className="relative">
+            <svg
+              viewBox="0 0 500 120"
+              className="w-full h-28 overflow-visible select-none"
+              onMouseMove={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const clientX = e.clientX - rect.left;
+                const percentX = clientX / rect.width;
+                const points = METRICS_DATA[activeMetric].points;
+                const index = Math.round(percentX * (points.length - 1));
+                const clampedIndex = Math.max(0, Math.min(points.length - 1, index));
+                
+                const coords = getCoords(points);
+                const pt = coords[clampedIndex];
+                setHoveredPoint({
+                  index: clampedIndex,
+                  x: pt.x,
+                  y: pt.y,
+                  val: METRICS_DATA[activeMetric].values[clampedIndex],
+                  date: METRICS_DATA[activeMetric].dates[clampedIndex],
+                });
+              }}
+              onMouseLeave={() => setHoveredPoint(null)}
+            >
+              <defs>
+                <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#B8976C" stopOpacity="0.25" />
+                  <stop offset="100%" stopColor="#B8976C" stopOpacity="0.0" />
+                </linearGradient>
+              </defs>
+
+              {/* Grid Lines */}
+              <line x1="30" y1="15" x2="470" y2="15" stroke="rgba(10,15,28,0.03)" strokeWidth="1" />
+              <line x1="30" y1="60" x2="470" y2="60" stroke="rgba(10,15,28,0.03)" strokeWidth="1" />
+              <line x1="30" y1="105" x2="470" y2="105" stroke="rgba(10,15,28,0.03)" strokeWidth="1" />
+
+              {/* Area Path */}
+              <motion.path
+                key={`area-${activeMetric}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                d={`M ${getCoords(METRICS_DATA[activeMetric].points)[0].x} 105 ` +
+                   getCoords(METRICS_DATA[activeMetric].points).map(c => `L ${c.x} ${c.y}`).join(' ') +
+                   ` L ${getCoords(METRICS_DATA[activeMetric].points)[getCoords(METRICS_DATA[activeMetric].points).length - 1].x} 105 Z`
+                }
+                fill="url(#chartGrad)"
+              />
+
+              {/* Line Path */}
+              <motion.path
+                key={`line-${activeMetric}`}
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                transition={{ duration: 0.5, ease: 'easeOut' }}
+                d={`M ` + getCoords(METRICS_DATA[activeMetric].points).map(c => `${c.x} ${c.y}`).join(' L ')}
+                fill="none"
+                stroke="#B8976C"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+
+              {/* Connection Tracker Line */}
+              {hoveredPoint && (
+                <line
+                  x1={hoveredPoint.x}
+                  y1="15"
+                  x2={hoveredPoint.x}
+                  y2="105"
+                  stroke="rgba(184,151,108,0.25)"
+                  strokeWidth="1"
+                  strokeDasharray="3 3"
+                />
+              )}
+
+              {/* Coords Dots */}
+              {getCoords(METRICS_DATA[activeMetric].points).map((pt, idx) => {
+                const isHovered = hoveredPoint?.index === idx;
+                return (
+                  <circle
+                    key={idx}
+                    cx={pt.x}
+                    cy={pt.y}
+                    r={isHovered ? 4.5 : 3}
+                    fill={isHovered ? '#B8976C' : '#ffffff'}
+                    stroke="#B8976C"
+                    strokeWidth="2"
+                    style={{ transition: 'all 0.15s ease-out' }}
+                  />
+                );
+              })}
+            </svg>
+
+            {/* Custom Tooltip */}
+            <AnimatePresence>
+              {hoveredPoint && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 5 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="absolute pointer-events-none rounded-xl p-2.5 text-xs shadow-xl border border-slate-100 z-10"
+                  style={{
+                    background: '#0A0F1C',
+                    color: '#ffffff',
+                    left: `${(hoveredPoint.x / 500) * 100}%`,
+                    top: `${(hoveredPoint.y / 120) * 100 - 65}%`,
+                    transform: 'translateX(-50%)',
+                  }}
+                >
+                  <p className="font-bold tracking-tight text-white">{hoveredPoint.val}</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">{hoveredPoint.date}</p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
       </motion.div>
 
       {/* ── Main content ── */}

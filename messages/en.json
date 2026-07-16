@@ -434,7 +434,20 @@
     },
     "staffFiles": {
       "title": "Files",
-      "subtitle": "Files shared with clients across all accounts."
+      "subtitle": "Files shared with clients across all accounts.",
+      "uploadFiles": "Upload Files",
+      "selectClient": "Select client to associate...",
+      "selectFiles": "Select files",
+      "uploading": "Uploading...",
+      "dragDrop": "Drag and drop files here",
+      "selectClientFirst": "Select a client first",
+      "formatsLabel": "Images, videos, PDFs, documents · Any size",
+      "allClients": "All clients",
+      "emptyFolder": "This folder is empty",
+      "newFolder": "New folder",
+      "enterFolderName": "Enter the name of the new folder:",
+      "deleteConfirm": "Delete \"{name}\"?",
+      "folderType": "File folder"
     },
     "payroll": {
       "title": "Payroll",
