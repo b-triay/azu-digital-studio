@@ -56,7 +56,7 @@ export function Sidebar({ onClose }: SidebarProps) {
     { key: 'approvals',  label: t('nav.approvals'), icon: CheckSquare,     href: 'dashboard/approvals', badge: approvalsCount },
     { key: 'files',      label: t('nav.files'),     icon: FolderOpen,      href: 'dashboard/files' },
     { key: 'messages',   label: t('nav.messages'),  icon: MessageSquare,   href: 'dashboard/messages', badge: messagesCount },
-    { key: 'billing',    label: 'Facturación',       icon: CreditCard,      href: 'dashboard/billing' },
+    { key: 'billing',    label: t('nav.billing'),   icon: CreditCard,      href: 'dashboard/billing' },
   ];
 
   const handleLogout = async () => {

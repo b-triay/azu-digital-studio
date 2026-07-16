@@ -173,7 +173,10 @@
       "allApprovals": "Todas las Aprobaciones",
       "payroll": "Pagos",
       "users": "Usuarios",
-      "posts": "Publicaciones"
+      "posts": "Publicaciones",
+      "billing": "Facturación",
+      "tickets": "Tareas",
+      "plans": "Planes"
     },
     "topbar": {
       "morning": "Buenos días",

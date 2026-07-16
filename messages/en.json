@@ -173,7 +173,10 @@
       "allApprovals": "All Approvals",
       "payroll": "Payroll",
       "users": "Users",
-      "posts": "Posts"
+      "posts": "Posts",
+      "billing": "Billing",
+      "tickets": "Tasks",
+      "plans": "Plans"
     },
     "topbar": {
       "morning": "Good morning",

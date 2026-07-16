@@ -43,9 +43,9 @@ export function StaffSidebar({ onClose }: StaffSidebarProps) {
     { key: 'posts',      label: t('nav.posts'),        icon: FileText,        href: 'staff/posts' },
     { key: 'approvals',  label: t('nav.allApprovals'), icon: CheckSquare,     href: 'staff/approvals', badge: pendingCount },
     { key: 'files',      label: t('nav.files'),        icon: FolderOpen,      href: 'staff/files' },
-    { key: 'tickets',    label: 'Tickets',              icon: Kanban,          href: 'staff/tickets' },
-    { key: 'plans',      label: 'Planes',               icon: Package,         href: 'staff/plans' },
-    { key: 'messages',   label: 'Mensajes',             icon: MessageSquare,   href: 'staff/messages', badge: messagesCount },
+    { key: 'tickets',    label: t('nav.tickets'),      icon: Kanban,          href: 'staff/tickets' },
+    { key: 'plans',      label: t('nav.plans'),         icon: Package,         href: 'staff/plans' },
+    { key: 'messages',   label: t('nav.messages'),      icon: MessageSquare,   href: 'staff/messages', badge: messagesCount },
     { key: 'payroll',    label: t('nav.payroll'),      icon: DollarSign,      href: 'staff/payroll' },
     { key: 'settings',   label: t('nav.users'),        icon: UserCog,         href: 'staff/settings' },
   ];
