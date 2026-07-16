@@ -192,10 +192,19 @@ export default function NewPostPage() {
         .select('id')
         .single();
 
-      if (!postError && post && assignedStaff.length > 0) {
-        await supabase.from('post_assignments').insert(
-          assignedStaff.map((staffId) => ({ post_id: post.id, staff_member_id: staffId }))
-        );
+      if (!postError && post) {
+        if (assignedStaff.length > 0) {
+          await supabase.from('post_assignments').insert(
+            assignedStaff.map((staffId) => ({ post_id: post.id, staff_member_id: staffId }))
+          );
+        }
+
+        // Notify client if post is sent for review (pending_approval)
+        const isPending = action !== 'draft' && action !== 'publish';
+        if (isPending) {
+          fetch(`/api/posts/${post.id}/notify-client`, { method: 'POST' })
+            .catch((err) => console.error('Failed to notify client:', err));
+        }
       }
     } catch {
       // Graceful fail — show success in demo mode
