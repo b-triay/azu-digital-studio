@@ -6,9 +6,10 @@ import { useParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CalendarDays, CheckSquare, MessageSquare, ArrowRight,
-  Check, X, Camera, Play, Clock, FolderOpen,
+  Check, X, Camera, Play, Clock, FolderOpen, AlertCircle,
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { useTranslations } from 'next-intl';
 
 const PLATFORM_CONFIG: Record<string, { label: string; color: string; Icon: React.ElementType }> = {
   instagram: { label: 'Instagram', color: '#c026d3', Icon: Camera },
@@ -65,6 +66,8 @@ export default function DashboardOverviewPage() {
   const [approvals, setApprovals]     = useState<PendingPost[]>([]);
   const [upcoming, setUpcoming]       = useState<UpcomingPost[]>([]);
   const [loading, setLoading]         = useState(true);
+  const [subscriptionStatus, setSubscriptionStatus] = useState<string>('inactive');
+  const [planName, setPlanName] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const supabase = createClient();
@@ -73,13 +76,15 @@ export default function DashboardOverviewPage() {
 
     const { data: client } = await supabase
       .from('clients')
-      .select('id, storage_url')
+      .select('id, storage_url, plan, subscription_status')
       .eq('user_id', user.id)
       .single();
 
     if (!client) { setLoading(false); return; }
 
     setStorageUrl(client.storage_url ?? null);
+    setSubscriptionStatus(client.subscription_status ?? 'inactive');
+    setPlanName(client.plan ?? null);
 
     const now = new Date();
     const monday = getMondayOfWeek(now);
@@ -197,8 +202,56 @@ export default function DashboardOverviewPage() {
     },
   ];
 
+  const t = useTranslations('portal');
+
   return (
     <div className="max-w-7xl mx-auto space-y-5">
+      {/* Plan Status Banner */}
+      {!loading && (subscriptionStatus === 'inactive' || subscriptionStatus === 'past_due') && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 animate-fade-in"
+          style={{
+            background: subscriptionStatus === 'past_due' ? '#FEE2E2' : '#FFFBEB',
+            border: subscriptionStatus === 'past_due' ? '1.5px solid rgba(220,38,38,0.2)' : '1.5px solid rgba(217,119,6,0.2)',
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+              style={{
+                background: subscriptionStatus === 'past_due' ? 'rgba(220,38,38,0.1)' : 'rgba(217,119,6,0.1)',
+                color: subscriptionStatus === 'past_due' ? '#DC2626' : '#D97706',
+              }}
+            >
+              <AlertCircle size={16} />
+            </div>
+            <div>
+              <h4 className="text-sm font-bold" style={{ color: '#0A0F1C' }}>
+                {subscriptionStatus === 'past_due' 
+                  ? t('dashboard.banner.pastDueTitle') 
+                  : t('dashboard.banner.inactiveTitle')}
+              </h4>
+              <p className="text-xs mt-0.5" style={{ color: '#5A6B80', lineHeight: '1.4' }}>
+                {subscriptionStatus === 'past_due'
+                  ? t('dashboard.banner.pastDueText')
+                  : t('dashboard.banner.inactiveText')}
+              </p>
+            </div>
+          </div>
+          <Link
+            href={`/${locale}/portal/dashboard/billing`}
+            className="flex-shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all hover:opacity-90 shadow-sm whitespace-nowrap"
+            style={{
+              background: '#0A0F1C',
+              color: '#ffffff',
+            }}
+          >
+            {t('dashboard.banner.cta')} <ArrowRight size={12} />
+          </Link>
+        </motion.div>
+      )}
 
       {/* ── Stats ── */}
       <motion.div className="grid grid-cols-3 gap-4" {...fadeUp(0)}>

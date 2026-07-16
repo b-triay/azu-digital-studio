@@ -240,7 +240,14 @@
       "noPendingReview": "Nenhuma publicação pendente de revisão.",
       "recentFiles": "Arquivos Recentes",
       "approve": "Aprovar",
-      "reject": "Rejeitar"
+      "reject": "Rejeitar",
+      "banner": {
+        "inactiveTitle": "Seu espaço de trabalho está em modo de demonstração",
+        "inactiveText": "Para activar seu plano, enviar entregáveis e começar a publicar, por favor complete sua assinatura.",
+        "pastDueTitle": "Assinatura vencida",
+        "pastDueText": "Tivemos um problema com seu último pagamento. Para evitar interrupções no serviço, por favor regularize sua assinatura.",
+        "cta": "Completar Pagamento"
+      }
     },
     "approvals": {
       "title": "Aprovações de Conteúdo",

@@ -238,9 +238,15 @@
       "viewAll": "Ver todo",
       "allCaughtUp": "¡Todo al día!",
       "noPendingReview": "No hay publicaciones pendientes de revisión.",
-      "recentFiles": "Archivos Recientes",
       "approve": "Aprobar",
-      "reject": "Rechazar"
+      "reject": "Rechazar",
+      "banner": {
+        "inactiveTitle": "Tu espacio de trabajo está en modo de demostración",
+        "inactiveText": "Para activar tu plan, subir entregables y comenzar a publicar, por favor completá tu suscripción.",
+        "pastDueTitle": "Suscripción vencida",
+        "pastDueText": "Tuvimos un problema con tu último pago. Para evitar interrupciones en el servicio, por favor regularizá tu suscripción.",
+        "cta": "Completar Pago"
+      }
     },
     "approvals": {
       "title": "Aprobaciones de Contenido",

@@ -238,9 +238,15 @@
       "viewAll": "View all",
       "allCaughtUp": "All caught up!",
       "noPendingReview": "No posts pending review.",
-      "recentFiles": "Recent Files",
       "approve": "Approve",
-      "reject": "Reject"
+      "reject": "Reject",
+      "banner": {
+        "inactiveTitle": "Your workspace is in demo mode",
+        "inactiveText": "To activate your plan, upload assets, and start scheduling posts, please complete your subscription.",
+        "pastDueTitle": "Subscription past due",
+        "pastDueText": "We encountered an issue with your last payment. To avoid service disruption, please resolve your subscription.",
+        "cta": "Complete Payment"
+      }
     },
     "approvals": {
       "title": "Content Approvals",
