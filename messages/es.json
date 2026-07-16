@@ -501,6 +501,22 @@
       "desc": "Ingresa una contraseña para acceder a tu portal.",
       "submit": "Guardar contraseña",
       "redirecting": "Redirigiendo a tu panel…"
+    },
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "subtitle": "Todo lo que necesitas saber sobre nuestro servicio y flujo de trabajo.",
+      "items": {
+        "q1": "¿Cómo funciona el servicio mensual?",
+        "a1": "Trabajamos en base a suscripciones mensuales. Cada plan incluye una cantidad definida de entregables (edición de video, diseño, posts, etc.). Usamos Notion para coordinar el calendario de contenido y Supabase para el portal de aprobaciones.",
+        "q2": "¿Cuáles son los medios de pago aceptados?",
+        "a2": "Aceptamos transferencias ACH locales para clientes de EE. UU. (procesado mediante ARQ/DolarApp sin recargo de comisión), pagos con tarjeta de crédito/débito internacionales a través de Takenos (comisión del 5% + $0.50), y pagos en pesos argentinos vía Mercado Pago para evitar recargos impositivos locales.",
+        "q3": "¿Cómo funciona el portal de aprobaciones?",
+        "a3": "Una vez que nuestro equipo edita tus videos o diseña tus posts, los subimos a tu portal personal. Recibirás un aviso para ingresar, ver el entregable y aprobarlo o solicitar cambios con un solo clic. Ningún contenido se publica sin tu aprobación previa.",
+        "q4": "¿Puedo cambiar de plan o cancelar en cualquier momento?",
+        "a4": "Sí, totalmente. Puedes solicitar cambiar de plan o cancelar tu suscripción escribiendo directamente a nuestro soporte antes de tu próxima fecha de facturación mensual. No hay contratos a largo plazo ni cargos ocultos.",
+        "q5": "¿Qué pasa si no consumo todos los entregables de mi plan en el mes?",
+        "a5": "Los entregables incluidos en cada ciclo de facturación mensual no son acumulables. Esto nos permite garantizar la disponibilidad de nuestros editores y diseñadores de forma dedicada para tu marca."
+      }
     }
   }
 }

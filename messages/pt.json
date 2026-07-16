@@ -502,6 +502,22 @@
       "desc": "Digite uma senha para acessar seu portal.",
       "submit": "Salvar senha",
       "redirecting": "Redirecionando para o painel…"
+    },
+    "faq": {
+      "title": "Perguntas Frequentes",
+      "subtitle": "Tudo o que você precisa saber sobre nossos serviços e fluxo de trabalho.",
+      "items": {
+        "q1": "Como funciona o serviço mensal?",
+        "a1": "Trabalhamos com base em assinaturas mensais. Cada plano inclui uma quantidade definida de entregáveis (edição de vídeo, design, posts, etc.). Usamos o Notion para coordenar o calendário de conteúdo e o Supabase para o portal de aprovações.",
+        "q2": "Quais são os meios de pagamento aceitos?",
+        "a2": "Aceitamos transferências ACH locais para clientes dos EUA (processadas via ARQ/DolarApp sem taxas extras), pagamentos com cartão de crédito/débito internacional através da Takenos (taxa de 5% + $0.50), e pagamentos em pesos argentinos via Mercado Pago para evitar impostos locais adicionais.",
+        "q3": "Como funciona o portal de aprovações?",
+        "a3": "Assim que nossa equipe edita seus vídeos ou desenha seus posts, nós os enviamos para o seu portal pessoal. Você receberá um aviso para entrar, ver o entregável e aprová-lo ou solicitar alterações com um único clique. Nenhum conteúdo é publicado sem sua aprovação prévia.",
+        "q4": "Posso mudar de plano ou cancelar a qualquer momento?",
+        "a4": "Sim, com certeza. Você pode solicitar a alteración de plano ou o cancelamento da sua assinatura escrevendo diretamente para o nosso suporte antes da sua próxima data de faturamento mensal. Não há contratos de longo prazo ou taxas ocultas.",
+        "q5": "O que acontece se eu não consumir todos os entregáveis do meu plano no mês?",
+        "a5": "Os entregáveis incluídos em cada ciclo de faturamento mensal não são acumulativos. Isso nos permite garantir a disponibilidade de nossos editores e designers de forma dedicada para a sua marca."
+      }
     }
   }
 }

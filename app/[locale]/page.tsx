@@ -5,6 +5,7 @@ import { Services } from '@/components/marketing/Services';
 import { Pricing } from '@/components/marketing/Pricing';
 import { Portfolio } from '@/components/marketing/Portfolio';
 import { About } from '@/components/marketing/About';
+import { FAQ } from '@/components/marketing/FAQ';
 import { CTASection } from '@/components/marketing/CTASection';
 import { Footer } from '@/components/marketing/Footer';
 
@@ -56,6 +57,7 @@ export default function LandingPage() {
         <Pricing />
         <Portfolio />
         <About />
+        <FAQ />
         <CTASection />
       </main>
       <Footer />
