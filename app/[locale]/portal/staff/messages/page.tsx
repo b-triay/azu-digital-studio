@@ -50,19 +50,53 @@ function formatDateLabel(iso: string): string {
 type MessageOrSep = { type: 'msg'; msg: Message } | { type: 'sep'; label: string; key: string };
 
 export default function StaffMessagesPage() {
-  const [clients, setClients]           = useState<ClientItem[]>([]);
+  const [clients, setClients]               = useState<ClientItem[]>([]);
   const [loadingClients, setLoadingClients] = useState(true);
   const [selected, setSelected]         = useState<ClientItem | null>(null);
   const [messages, setMessages]         = useState<Message[]>([]);
   const [text, setText]                 = useState('');
   const [sending, setSending]           = useState(false);
   const [loadingMsgs, setLoadingMsgs]   = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [staffChat, setStaffChat]       = useState<ClientItem | null>(null);
+  
   const bottomRef                       = useRef<HTMLDivElement>(null);
   const textareaRef                     = useRef<HTMLTextAreaElement>(null);
   const channelRef                      = useRef<ReturnType<ReturnType<typeof createClient>['channel']> | null>(null);
 
   const loadClients = useCallback(async () => {
     const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      setCurrentUserId(user.id);
+    }
+
+    // Ensure the internal staff chat client placeholder exists in DB
+    let { data: staffChatRow } = await supabase
+      .from('clients')
+      .select('id, name, initials, color')
+      .eq('name', 'Chat Interno de Staff')
+      .maybeSingle();
+
+    if (!staffChatRow) {
+      const { data: newRow } = await supabase
+        .from('clients')
+        .insert({
+          name: 'Chat Interno de Staff',
+          initials: 'EQ',
+          color: '#B8976C',
+          status: 'paused',
+          plan: 'Staff Internal',
+          subscription_status: 'inactive',
+          user_id: null,
+        })
+        .select('id, name, initials, color')
+        .single();
+      if (newRow) {
+        staffChatRow = newRow;
+      }
+    }
+
     const { data: rawClients } = await supabase
       .from('clients')
       .select('id, name, initials, color')
@@ -90,7 +124,10 @@ export default function StaffMessagesPage() {
       if (!lastMap[r.client_id]) lastMap[r.client_id] = r;
     }
 
-    const items: ClientItem[] = rawClients.map((c) => ({
+    // Filter out the staff chat from the clients list
+    const filteredRawClients = rawClients.filter(c => c.name !== 'Chat Interno de Staff');
+
+    const items: ClientItem[] = filteredRawClients.map((c) => ({
       id: c.id,
       name: c.name,
       initials: c.initials,
@@ -106,6 +143,18 @@ export default function StaffMessagesPage() {
       if (b.lastAt) return 1;
       return a.name.localeCompare(b.name);
     });
+
+    if (staffChatRow) {
+      setStaffChat({
+        id: staffChatRow.id,
+        name: staffChatRow.name,
+        initials: staffChatRow.initials,
+        color: staffChatRow.color,
+        unread: unreadMap[staffChatRow.id] ?? 0,
+        lastMessage: lastMap[staffChatRow.id]?.content ?? null,
+        lastAt: lastMap[staffChatRow.id]?.created_at ?? null,
+      });
+    }
 
     setClients(items);
     setLoadingClients(false);
@@ -138,7 +187,13 @@ export default function StaffMessagesPage() {
 
     setMessages(data ?? []);
     setLoadingMsgs(false);
-    setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, unread: 0 } : c)));
+    
+    // Mark as read in local state
+    if (client.name === 'Chat Interno de Staff') {
+      setStaffChat((prev) => prev ? { ...prev, unread: 0 } : null);
+    } else {
+      setClients((prev) => prev.map((c) => (c.id === client.id ? { ...c, unread: 0 } : c)));
+    }
 
     const channel = supabase
       .channel('staff-messages-' + client.id)
@@ -195,14 +250,30 @@ export default function StaffMessagesPage() {
       .eq('user_id', user.id)
       .single();
 
+    const messageContent = text.trim();
+    const staffName = staffRow?.name ?? 'Staff';
+
     await supabase.from('messages').insert({
       client_id: selected.id,
       sender_id: user.id,
-      sender_name: staffRow?.name ?? 'Staff',
+      sender_name: staffName,
       sender_role: 'staff',
-      content: text.trim(),
+      content: messageContent,
       read_by_staff: true,
+      read_by_client: selected.name === 'Chat Interno de Staff',
     });
+
+    // Send email notification (async)
+    fetch('/api/messages/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: messageContent,
+        clientId: selected.id,
+        senderName: staffName,
+        senderRole: 'staff',
+      }),
+    }).catch((err) => console.error('Failed to notify message recipient:', err));
 
     setText('');
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
@@ -217,14 +288,14 @@ export default function StaffMessagesPage() {
   return (
     <div className="flex h-full overflow-hidden rounded-2xl" style={{ border: '1px solid rgba(10,15,28,0.08)' }}>
 
-      {/* Panel izquierdo — lista de clientes */}
+      {/* Panel izquierdo — lista de chats */}
       <div
         className="w-72 flex-shrink-0 flex flex-col overflow-hidden"
         style={{ background: '#F7F4EE', borderRight: '1px solid rgba(10,15,28,0.08)' }}
       >
         <div className="px-4 py-4 flex-shrink-0" style={{ borderBottom: '1px solid rgba(10,15,28,0.08)', background: '#F7F4EE' }}>
           <h1 className="text-base font-extrabold" style={{ color: '#0A0F1C' }}>Mensajes</h1>
-          <p className="text-xs mt-0.5" style={{ color: '#5A6B80' }}>Conversaciones con clientes</p>
+          <p className="text-xs mt-0.5" style={{ color: '#5A6B80' }}>Chats del equipo y clientes</p>
         </div>
 
         <div className="flex-1 overflow-y-auto">
@@ -240,65 +311,128 @@ export default function StaffMessagesPage() {
                 </div>
               ))}
             </>
-          ) : clients.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full gap-2 p-6 text-center">
-              <MessageSquare size={28} style={{ color: '#8A9BB0' }} />
-              <p className="text-sm" style={{ color: '#5A6B80' }}>Sin clientes aún</p>
-            </div>
           ) : (
-            clients.map((c) => {
-              const isSelected = selected?.id === c.id;
-              return (
-                <button
-                  key={c.id}
-                  onClick={() => selectClient(c)}
-                  className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgba(10,15,28,0.04)]"
-                  style={{
-                    background: isSelected ? 'rgba(184,151,108,0.1)' : 'transparent',
-                    borderBottom: '1px solid rgba(10,15,28,0.04)',
-                    borderLeft: isSelected ? '2.5px solid #B8976C' : '2.5px solid transparent',
-                  }}
-                >
-                  <div
-                    className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
-                    style={{ background: c.color }}
-                  >
-                    {c.initials}
+            <div className="flex flex-col">
+              
+              {/* Sección Equipo Interno */}
+              {staffChat && (
+                <div style={{ borderBottom: '1px solid rgba(10,15,28,0.08)', paddingBottom: '4px' }}>
+                  <div className="px-4 pt-3 pb-1 flex items-center justify-between">
+                    <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#B8976C' }}>
+                      Equipo Interno
+                    </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className="text-sm truncate"
-                        style={{ color: '#0A0F1C', fontWeight: c.unread > 0 ? 700 : 500 }}
-                      >
-                        {c.name}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {c.lastAt && (
-                          <span className="text-xs" style={{ color: '#8A9BB0' }}>{formatRelative(c.lastAt)}</span>
-                        )}
-                        {c.unread > 0 && (
-                          <span
-                            className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
-                            style={{ background: '#B8976C', color: '#fff' }}
-                          >
-                            {c.unread}
-                          </span>
+                  <button
+                    onClick={() => selectClient(staffChat)}
+                    className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgba(10,15,28,0.04)]"
+                    style={{
+                      background: selected?.id === staffChat.id ? 'rgba(184,151,108,0.1)' : 'transparent',
+                      borderLeft: selected?.id === staffChat.id ? '2.5px solid #B8976C' : '2.5px solid transparent',
+                    }}
+                  >
+                    <div
+                      className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold text-white relative"
+                      style={{ background: '#0A0F1C', border: '1.5px solid #B8976C' }}
+                    >
+                      💬
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className="text-sm font-bold truncate"
+                          style={{ color: '#0A0F1C' }}
+                        >
+                          Chat de Staff
+                        </span>
+                        {staffChat.lastAt && (
+                          <span className="text-xs" style={{ color: '#8A9BB0' }}>{formatRelative(staffChat.lastAt)}</span>
                         )}
                       </div>
+                      {staffChat.lastMessage ? (
+                        <p
+                          className="text-xs truncate mt-0.5"
+                          style={{ color: '#5A6B80' }}
+                        >
+                          {staffChat.lastMessage.length > 42 ? staffChat.lastMessage.slice(0, 42) + '…' : staffChat.lastMessage}
+                        </p>
+                      ) : (
+                        <p className="text-xs italic mt-0.5" style={{ color: '#8A9BB0' }}>
+                          Canal grupal del equipo Azu
+                        </p>
+                      )}
                     </div>
-                    {c.lastMessage && (
-                      <p
-                        className="text-xs truncate mt-0.5"
-                        style={{ color: c.unread > 0 ? '#5A6B80' : '#8A9BB0', fontWeight: c.unread > 0 ? 500 : 400 }}
+                  </button>
+                </div>
+              )}
+
+              {/* Sección Clientes */}
+              <div className="px-4 pt-4 pb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider" style={{ color: '#8A9BB0' }}>
+                  Clientes
+                </span>
+              </div>
+
+              {clients.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8 gap-2 p-6 text-center">
+                  <MessageSquare size={20} style={{ color: '#8A9BB0' }} />
+                  <p className="text-xs" style={{ color: '#5A6B80' }}>Sin clientes aún</p>
+                </div>
+              ) : (
+                clients.map((c) => {
+                  const isSelected = selected?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => selectClient(c)}
+                      className="w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-[rgba(10,15,28,0.04)]"
+                      style={{
+                        background: isSelected ? 'rgba(184,151,108,0.1)' : 'transparent',
+                        borderBottom: '1px solid rgba(10,15,28,0.04)',
+                        borderLeft: isSelected ? '2.5px solid #B8976C' : '2.5px solid transparent',
+                      }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold text-white"
+                        style={{ background: c.color }}
                       >
-                        {c.lastMessage.length > 42 ? c.lastMessage.slice(0, 42) + '…' : c.lastMessage}
-                      </p>
-                    )}
-                  </div>
-                </button>
-              );
-            })
+                        {c.initials}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className="text-sm truncate"
+                            style={{ color: '#0A0F1C', fontWeight: c.unread > 0 ? 700 : 500 }}
+                          >
+                            {c.name}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {c.lastAt && (
+                              <span className="text-xs" style={{ color: '#8A9BB0' }}>{formatRelative(c.lastAt)}</span>
+                            )}
+                            {c.unread > 0 && (
+                              <span
+                                className="text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center"
+                                style={{ background: '#B8976C', color: '#fff' }}
+                              >
+                                {c.unread}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        {c.lastMessage && (
+                          <p
+                            className="text-xs truncate mt-0.5"
+                            style={{ color: c.unread > 0 ? '#5A6B80' : '#8A9BB0', fontWeight: c.unread > 0 ? 500 : 400 }}
+                          >
+                            {c.lastMessage.length > 42 ? c.lastMessage.slice(0, 42) + '…' : c.lastMessage}
+                          </p>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -314,9 +448,9 @@ export default function StaffMessagesPage() {
               <MessageSquare size={30} style={{ color: '#B8976C' }} />
             </div>
             <div>
-              <p className="text-sm font-semibold" style={{ color: '#0A0F1C' }}>Seleccioná un cliente</p>
+              <p className="text-sm font-semibold" style={{ color: '#0A0F1C' }}>Seleccioná una conversación</p>
               <p className="text-xs mt-1" style={{ color: '#8A9BB0' }}>
-                Elegí una conversación de la lista para comenzar.
+                Elegí un chat de la lista para comenzar.
               </p>
             </div>
           </div>
@@ -329,11 +463,18 @@ export default function StaffMessagesPage() {
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                style={{ background: selected.color }}
+                style={{ background: selected.id === staffChat?.id ? '#0A0F1C' : selected.color, border: selected.id === staffChat?.id ? '1px solid #B8976C' : 'none' }}
               >
-                {selected.initials}
+                {selected.id === staffChat?.id ? '💬' : selected.initials}
               </div>
-              <span className="text-sm font-bold" style={{ color: '#0A0F1C' }}>{selected.name}</span>
+              <div>
+                <span className="text-sm font-bold block leading-none" style={{ color: '#0A0F1C' }}>
+                  {selected.name === 'Chat Interno de Staff' ? 'Chat de Staff' : selected.name}
+                </span>
+                {selected.id === staffChat?.id && (
+                  <span className="text-[10px] font-semibold" style={{ color: '#B8976C' }}>Canal de equipo interno</span>
+                )}
+              </div>
             </div>
 
             {/* Mensajes */}
@@ -345,7 +486,7 @@ export default function StaffMessagesPage() {
               ) : messages.length === 0 ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-2 mt-16 text-center">
                   <MessageSquare size={28} style={{ color: '#8A9BB0' }} />
-                  <p className="text-sm" style={{ color: '#5A6B80' }}>Sin mensajes aún con {selected.name}.</p>
+                  <p className="text-sm" style={{ color: '#5A6B80' }}>Sin mensajes aún.</p>
                 </div>
               ) : (
                 items.map((item) => {
@@ -358,24 +499,34 @@ export default function StaffMessagesPage() {
                       </div>
                     );
                   }
+                  
                   const { msg } = item;
-                  const isStaff = msg.sender_role === 'staff';
+                  
+                  // In staff chat, own message is defined by sender_id. In client chat, by sender_role.
+                  const isOwn = selected.id === staffChat?.id 
+                    ? msg.sender_id === currentUserId 
+                    : msg.sender_role === 'staff';
+                    
                   return (
-                    <div key={msg.id} className={`flex flex-col gap-1 ${isStaff ? 'items-end' : 'items-start'}`}>
+                    <div key={msg.id} className={`flex flex-col gap-1 ${isOwn ? 'items-end' : 'items-start'}`}>
                       <div
                         className="max-w-xs lg:max-w-md px-4 py-2.5 text-sm leading-relaxed"
                         style={{
-                          background: isStaff ? '#0A0F1C' : '#ffffff',
-                          color: isStaff ? '#F7F4EE' : '#0A0F1C',
-                          border: isStaff ? 'none' : '1px solid rgba(10,15,28,0.1)',
-                          borderRadius: isStaff ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          boxShadow: isStaff ? 'none' : '0 1px 3px rgba(10,15,28,0.06)',
+                          background: isOwn ? '#0A0F1C' : '#ffffff',
+                          color: isOwn ? '#F7F4EE' : '#0A0F1C',
+                          border: isOwn ? 'none' : '1px solid rgba(10,15,28,0.1)',
+                          borderRadius: isOwn ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          boxShadow: isOwn ? 'none' : '0 1px 3px rgba(10,15,28,0.06)',
                         }}
                       >
                         {msg.content}
                       </div>
                       <div className="flex items-center gap-1.5 px-1">
-                        {!isStaff && <span className="text-xs font-medium" style={{ color: '#5A6B80' }}>{msg.sender_name}</span>}
+                        {!isOwn && (
+                          <span className="text-xs font-semibold" style={{ color: '#B8976C' }}>
+                            {msg.sender_name}
+                          </span>
+                        )}
                         <span className="text-xs" style={{ color: '#8A9BB0' }}>{formatTime(msg.created_at)}</span>
                       </div>
                     </div>
@@ -395,7 +546,7 @@ export default function StaffMessagesPage() {
                 value={text}
                 onChange={handleTextChange}
                 onKeyDown={handleKey}
-                placeholder="Escribí un mensaje… (Enter para enviar)"
+                placeholder={selected.id === staffChat?.id ? "Escribí al equipo… (Enter para enviar)" : "Escribí un mensaje… (Enter para enviar)"}
                 rows={1}
                 className="flex-1 resize-none rounded-xl px-4 py-2.5 text-sm outline-none transition-all"
                 style={{

@@ -121,14 +121,28 @@ export default function ClientMessagesPage() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) { setSending(false); return; }
 
+    const messageContent = text.trim();
+
     await supabase.from('messages').insert({
       client_id: clientId,
       sender_id: user.id,
       sender_name: clientName,
       sender_role: 'client',
-      content: text.trim(),
+      content: messageContent,
       read_by_client: true,
     });
+
+    // Send email notification (async)
+    fetch('/api/messages/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        content: messageContent,
+        clientId: clientId,
+        senderName: clientName,
+        senderRole: 'client',
+      }),
+    }).catch((err) => console.error('Failed to notify message recipient:', err));
 
     setText('');
     if (textareaRef.current) { textareaRef.current.style.height = 'auto'; }

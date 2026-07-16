@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { Upload, FileText, FileImage, Film, FileIcon, Download, Trash2, Loader2, CloudUpload, Filter } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Upload, FileText, FileImage, Film, FileIcon, Download, Trash2, Loader2, CloudUpload, Filter, Folder, ArrowLeft, ChevronRight, Plus } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useTranslations } from 'next-intl';
 
@@ -60,6 +60,10 @@ export default function StaffFilesPage() {
   const [filterClient, setFilterClient] = useState('all');
   const [deleting, setDeleting]         = useState<string | null>(null);
   const [uploadError, setUploadError]   = useState('');
+
+  // Virtual folders states
+  const [currentFolder, setCurrentFolder] = useState<string>('');
+  const [createdFolders, setCreatedFolders] = useState<string[]>([]);
 
   const loadFiles = useCallback(async () => {
     setLoading(true);
@@ -141,14 +145,16 @@ export default function StaffFilesPage() {
         return;
       }
 
-      // Step 2: register metadata in Supabase
+      // Step 2: register metadata in Supabase (with folder prefix in the name)
+      const finalFileName = currentFolder ? `${currentFolder}/${file.name}` : file.name;
+
       const registerRes = await fetch('/api/files/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           driveFileId,
           clientId: uploadClient,
-          name: file.name,
+          name: finalFileName,
           sizeBytes: file.size,
           type: detectType(file),
         }),
@@ -192,14 +198,96 @@ export default function StaffFilesPage() {
   const handleDownload = (file: ClientFile) => {
     const a = document.createElement('a');
     a.href = `/api/files/download/${file.drive_file_id}`;
-    a.download = file.name;
+    // Strip folder prefix for download name
+    const displayName = file.name.includes('/') ? file.name.split('/').pop()! : file.name;
+    a.download = displayName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
   const clientColor = (id: string) => clients.find(c => c.id === id)?.color ?? '#8A9BB0';
-  const filtered = files.filter(f => filterClient === 'all' || f.client_id === filterClient);
+
+  // --- Virtual Folder Logic ---
+  const parsedFolders = useMemo(() => {
+    const folderNames = new Set<string>();
+    
+    // Parse folders from DB files
+    for (const f of files) {
+      if (filterClient !== 'all' && f.client_id !== filterClient) continue;
+
+      if (f.name.includes('/')) {
+        const parts = f.name.split('/');
+        if (currentFolder === '') {
+          folderNames.add(parts[0]);
+        } else {
+          if (f.name.startsWith(currentFolder + '/')) {
+            const subPath = f.name.substring(currentFolder.length + 1);
+            if (subPath.includes('/')) {
+              folderNames.add(subPath.split('/')[0]);
+            }
+          }
+        }
+      }
+    }
+
+    // Merge with dynamically created empty folders
+    for (const cf of createdFolders) {
+      if (currentFolder === '') {
+        if (!cf.includes('/')) folderNames.add(cf);
+        else folderNames.add(cf.split('/')[0]);
+      } else {
+        if (cf.startsWith(currentFolder + '/')) {
+          const subPath = cf.substring(currentFolder.length + 1);
+          if (subPath.includes('/')) folderNames.add(subPath.split('/')[0]);
+          else folderNames.add(subPath);
+        }
+      }
+    }
+
+    return Array.from(folderNames).sort();
+  }, [files, currentFolder, createdFolders, filterClient]);
+
+  const currentLevelFiles = useMemo(() => {
+    return files.filter(f => {
+      if (filterClient !== 'all' && f.client_id !== filterClient) return false;
+
+      if (currentFolder === '') {
+        return !f.name.includes('/');
+      } else {
+        if (!f.name.startsWith(currentFolder + '/')) return false;
+        const subPath = f.name.substring(currentFolder.length + 1);
+        return !subPath.includes('/');
+      }
+    });
+  }, [files, currentFolder, filterClient]);
+
+  const handleCreateFolder = () => {
+    const name = prompt('Ingrese el nombre de la nueva carpeta:');
+    if (!name || !name.trim()) return;
+    const cleanName = name.trim().replace(/\//g, ''); // Prevent slashes inside folder name
+    const folderPath = currentFolder ? `${currentFolder}/${cleanName}` : cleanName;
+    setCreatedFolders(prev => [...prev, folderPath]);
+  };
+
+  const handleFolderClick = (folderName: string) => {
+    setCurrentFolder(prev => prev ? `${prev}/${folderName}` : folderName);
+  };
+
+  const navigateToBreadcrumb = (index: number) => {
+    if (index === -1) {
+      setCurrentFolder('');
+      return;
+    }
+    const parts = currentFolder.split('/');
+    const newPath = parts.slice(0, index + 1).join('/');
+    setCurrentFolder(newPath);
+  };
+
+  const breadcrumbs = useMemo(() => {
+    if (!currentFolder) return [];
+    return currentFolder.split('/');
+  }, [currentFolder]);
 
   return (
     <div className="max-w-5xl mx-auto flex flex-col gap-5">
@@ -221,7 +309,14 @@ export default function StaffFilesPage() {
         className="rounded-2xl p-5"
         style={{ background: '#ffffff', border: '1px solid rgba(10,15,28,0.08)', boxShadow: '0 1px 4px rgba(10,15,28,0.05)' }}
       >
-        <p className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: '#8A9BB0' }}>Upload Files</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-xs font-bold uppercase tracking-widest" style={{ color: '#8A9BB0' }}>Upload Files</p>
+          {currentFolder && (
+            <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: 'rgba(184,151,108,0.1)', color: '#B8976C' }}>
+              Subiendo a: {currentFolder}
+            </span>
+          )}
+        </div>
 
         <div className="flex flex-col sm:flex-row gap-3 mb-4">
           <select
@@ -309,23 +404,49 @@ export default function StaffFilesPage() {
       >
         {/* List header */}
         <div
-          className="flex items-center justify-between px-5 py-3"
+          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-3.5"
           style={{ borderBottom: '1px solid rgba(10,15,28,0.08)', background: '#F7F4EE' }}
         >
-          <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: '#8A9BB0' }}>
-            {filtered.length} file{filtered.length !== 1 ? 's' : ''}
-          </p>
-          <div className="flex items-center gap-2">
-            <Filter size={12} style={{ color: '#8A9BB0' }} />
-            <select
-              value={filterClient}
-              onChange={(e) => setFilterClient(e.target.value)}
-              className="text-xs px-2.5 py-1.5 rounded-lg outline-none"
-              style={{ border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', background: '#fff', fontFamily: 'inherit' }}
+          <div className="flex items-center gap-2 flex-wrap text-sm font-bold" style={{ color: '#0A0F1C' }}>
+            <button
+              onClick={() => navigateToBreadcrumb(-1)}
+              className="hover:underline transition-all hover:text-[#B8976C] cursor-pointer"
             >
-              <option value="all">All clients</option>
-              {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
+              Raíz
+            </button>
+            {breadcrumbs.map((part, index) => (
+              <span key={index} className="flex items-center gap-1.5 text-slate-400">
+                <ChevronRight size={12} />
+                <button
+                  onClick={() => navigateToBreadcrumb(index)}
+                  className="hover:underline transition-all hover:text-[#B8976C] text-[#0A0F1C] cursor-pointer"
+                >
+                  {part}
+                </button>
+              </span>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCreateFolder}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all hover:bg-slate-200 cursor-pointer border"
+              style={{ borderColor: 'rgba(10,15,28,0.12)', color: '#0A0F1C', background: '#fff' }}
+            >
+              <Plus size={12} /> Nueva carpeta
+            </button>
+            <div className="flex items-center gap-1">
+              <Filter size={12} style={{ color: '#8A9BB0' }} className="ml-1" />
+              <select
+                value={filterClient}
+                onChange={(e) => setFilterClient(e.target.value)}
+                className="text-xs px-2 py-1.5 rounded-lg outline-none cursor-pointer"
+                style={{ border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', background: '#fff', fontFamily: 'inherit' }}
+              >
+                <option value="all">All clients</option>
+                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </div>
           </div>
         </div>
 
@@ -333,17 +454,53 @@ export default function StaffFilesPage() {
           <div className="flex items-center justify-center py-16">
             <Loader2 size={20} className="animate-spin" style={{ color: '#8A9BB0' }} />
           </div>
-        ) : filtered.length === 0 ? (
+        ) : parsedFolders.length === 0 && currentLevelFiles.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16">
             <FileIcon size={32} style={{ color: '#e2e8f0' }} />
-            <p className="text-sm font-semibold mt-3" style={{ color: '#8A9BB0' }}>No files uploaded yet</p>
+            <p className="text-sm font-semibold mt-3" style={{ color: '#8A9BB0' }}>Esta carpeta está vacía</p>
+            {currentFolder && (
+              <button
+                onClick={() => setCurrentFolder(prev => prev.includes('/') ? prev.split('/').slice(0, -1).join('/') : '')}
+                className="mt-4 flex items-center gap-1 text-xs font-bold hover:underline"
+                style={{ color: '#B8976C' }}
+              >
+                <ArrowLeft size={12} /> Volver
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y" style={{ borderColor: 'rgba(10,15,28,0.05)' }}>
-            {filtered.map((file, idx) => {
+            
+            {/* Folder rows */}
+            {parsedFolders.map((folder) => (
+              <div
+                key={folder}
+                onClick={() => handleFolderClick(folder)}
+                className="flex items-center gap-4 px-5 py-3 hover:bg-[rgba(10,15,28,0.04)] transition-colors cursor-pointer"
+              >
+                <div
+                  className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: 'rgba(184,151,108,0.12)', color: '#B8976C' }}
+                >
+                  <Folder size={16} fill="#B8976C" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate" style={{ color: '#0A0F1C' }}>{folder}</p>
+                  <p className="text-[11px]" style={{ color: '#8A9BB0' }}>Carpeta de archivos</p>
+                </div>
+                <ChevronRight size={14} className="text-slate-400" />
+              </div>
+            ))}
+
+            {/* File rows */}
+            {currentLevelFiles.map((file, idx) => {
               const TypeIcon = TYPE_ICONS[file.type] ?? FileIcon;
               const typeStyle = TYPE_COLORS[file.type] ?? TYPE_COLORS.other;
               const isDeleting = deleting === file.id;
+              
+              // Strip folder path from display name
+              const displayName = file.name.includes('/') ? file.name.split('/').pop()! : file.name;
+
               return (
                 <motion.div
                   key={file.id}
@@ -360,7 +517,7 @@ export default function StaffFilesPage() {
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold truncate" style={{ color: '#0A0F1C' }}>{file.name}</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: '#0A0F1C' }}>{displayName}</p>
                     <div className="flex items-center gap-2 mt-0.5">
                       <span
                         className="text-[10px] font-semibold px-1.5 py-0.5 rounded"
@@ -379,7 +536,7 @@ export default function StaffFilesPage() {
                   <div className="flex items-center gap-1.5">
                     <button
                       onClick={() => handleDownload(file)}
-                      className="p-2 rounded-xl hover:bg-blue-50 transition-colors"
+                      className="p-2 rounded-xl hover:bg-blue-50 transition-colors cursor-pointer"
                       title="Download"
                       style={{ color: '#5A6B80' }}
                     >
@@ -388,7 +545,7 @@ export default function StaffFilesPage() {
                     <button
                       onClick={() => handleDelete(file)}
                       disabled={isDeleting}
-                      className="p-2 rounded-xl hover:bg-red-50 transition-colors disabled:opacity-40"
+                      className="p-2 rounded-xl hover:bg-red-50 transition-colors disabled:opacity-40 cursor-pointer"
                       title="Delete"
                       style={{ color: '#8A9BB0' }}
                     >
