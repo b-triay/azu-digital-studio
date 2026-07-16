@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, CheckCircle2, Pencil, Circle, XCircle, CalendarDays } from 'lucide-react';
+import { X, Clock, CheckCircle2, Pencil, Circle, XCircle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ContentCalendar } from '@/components/portal/ContentCalendar';
+import { createClient } from '@/lib/supabase/client';
 import type { Post, PostStatus } from '@/lib/types';
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -37,10 +38,36 @@ export default function CalendarPage() {
   };
 
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [clientId, setClientId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (!user) { setLoading(false); return; }
+      supabase
+        .from('clients')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          if (data) setClientId(data.id);
+          setLoading(false);
+        });
+    });
+  }, []);
 
   const handlePostClick = (post: Post) => {
     setSelectedPost((prev) => (prev?.id === post.id ? null : post));
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-48">
+        <div className="w-6.5 h-6.5 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: '#0A0F1C' }} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto flex flex-col gap-5">
@@ -92,6 +119,7 @@ export default function CalendarPage() {
         {/* Calendar */}
         <div className="min-w-0">
           <ContentCalendar
+            clientId={clientId || undefined}
             onPostClick={handlePostClick}
             selectedPostId={selectedPost?.id}
           />
@@ -112,8 +140,7 @@ export default function CalendarPage() {
               {(() => {
                 const statusCfg = STATUS_CONFIG[selectedPost.status];
                 const platCfg = PLATFORM_CONFIG[selectedPost.platform] ?? PLATFORM_CONFIG.instagram;
-                const SIcon = statusCfg.Icon;
-
+                
                 return (
                   <>
                     {/* Panel header */}
@@ -142,54 +169,42 @@ export default function CalendarPage() {
                           {platCfg.label}
                         </span>
                         <span
-                          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full"
+                          className="text-xs font-semibold px-2.5 py-1 rounded-full inline-flex items-center gap-1"
                           style={{ background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}` }}
                         >
-                          <SIcon size={10} />
+                          <statusCfg.Icon size={10} />
                           {statusCfg.label}
                         </span>
                       </div>
 
                       {/* Title */}
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>{t('calendar.titleLabel')}</p>
-                        <p className="text-sm font-bold" style={{ color: '#0A0F1C' }}>{selectedPost.title}</p>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Título</h4>
+                        <p className="text-sm font-bold mt-0.5" style={{ color: '#0A0F1C' }}>{selectedPost.title}</p>
                       </div>
 
-                      {/* Scheduled date */}
+                      {/* Date */}
                       <div>
-                        <p className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>{t('calendar.scheduledLabel')}</p>
-                        <div className="flex items-center gap-2">
-                          <CalendarDays size={13} style={{ color: '#5A6B80' }} />
-                          <p className="text-sm font-medium" style={{ color: '#334155' }}>
-                            {new Date(selectedPost.scheduled_for).toLocaleDateString('en', {
-                              weekday: 'long', month: 'short', day: 'numeric',
-                            })}
-                          </p>
-                        </div>
+                        <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Programado para</h4>
+                        <p className="text-xs font-medium mt-0.5" style={{ color: '#5A6B80' }}>
+                          {new Date(selectedPost.scheduled_for).toLocaleDateString('es-AR', {
+                            weekday: 'long',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </p>
                       </div>
 
                       {/* Caption */}
-                      <div>
-                        <p className="text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>{t('calendar.captionLabel')}</p>
-                        <div
-                          className="px-3 py-3 rounded-xl text-sm leading-relaxed font-medium"
-                          style={{ background: '#F7F4EE', color: '#334155', border: '1px solid rgba(10,15,28,0.07)' }}
-                        >
-                          {selectedPost.caption}
+                      {selectedPost.caption && (
+                        <div>
+                          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Descripción / Copy</h4>
+                          <p className="text-xs font-medium mt-1 leading-relaxed whitespace-pre-wrap p-3 rounded-xl border border-slate-100 bg-slate-50" style={{ color: '#334155' }}>
+                            {selectedPost.caption}
+                          </p>
                         </div>
-                      </div>
-
-                      {/* CTA if pending */}
-                      {selectedPost.status === 'pending_approval' && (
-                        <a
-                          href="../approvals"
-                          className="flex items-center justify-center gap-2 py-3 rounded-xl text-xs font-bold transition-all hover:-translate-y-0.5"
-                          style={{ background: '#fff7ed', color: '#ea580c', border: '1.5px solid #fed7aa' }}
-                        >
-                          <Clock size={12} />
-                          {t('calendar.goToApprovals')}
-                        </a>
                       )}
                     </div>
                   </>

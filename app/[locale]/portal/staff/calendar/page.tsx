@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Loader2, X, Plus, Filter, Save, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Loader2, X, Plus, Filter, Save, ExternalLink, Search } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -65,6 +65,8 @@ export default function StaffCalendarPage() {
   const [filterToday, setFilterToday] = useState(false);
   const [filterMine, setFilterMine]   = useState(false);
   const [myPostIds, setMyPostIds]     = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterPlatform, setFilterPlatform] = useState('all');
 
   // Modals
   const [detailPost, setDetailPost]     = useState<CalPost | null>(null);
@@ -132,6 +134,13 @@ export default function StaffCalendarPage() {
     if (filterToday) {
       const d = new Date(p.scheduled_for);
       if (d.getFullYear() !== today.getFullYear() || d.getMonth() !== today.getMonth() || d.getDate() !== today.getDate()) return false;
+    }
+    if (filterPlatform !== 'all' && p.platform !== filterPlatform) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      const matchTitle = p.title?.toLowerCase().includes(q);
+      const matchCaption = p.caption?.toLowerCase().includes(q);
+      if (!matchTitle && !matchCaption) return false;
     }
     return true;
   });
@@ -259,6 +268,33 @@ export default function StaffCalendarPage() {
                 <Filter size={10} /> Solo lo mío
               </button>
             </div>
+
+            {/* Search filter */}
+            <div className="relative flex items-center">
+              <Search size={11} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="Buscar publicación..."
+                value={searchQuery}
+                onChange={(e) => { setSearchQuery(e.target.value); setSelectedDay(null); }}
+                className="text-xs pl-7 pr-3 py-2 rounded-xl outline-none border bg-white"
+                style={{ borderColor: 'rgba(10,15,28,0.12)', color: '#334155', width: '130px' }}
+              />
+            </div>
+
+            {/* Platform filter */}
+            <select
+              value={filterPlatform}
+              onChange={(e) => { setFilterPlatform(e.target.value); setSelectedDay(null); }}
+              className="text-xs px-3 py-2 rounded-xl outline-none cursor-pointer"
+              style={{ border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', background: '#F7F4EE', fontFamily: 'inherit' }}
+            >
+              <option value="all">Todas las plataformas</option>
+              <option value="instagram">Instagram</option>
+              <option value="tiktok">TikTok</option>
+              <option value="youtube">YouTube</option>
+              <option value="email">Email</option>
+            </select>
 
             {/* Client filter */}
             <select

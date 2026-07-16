@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import type { Post, PostStatus } from '@/lib/types';
 
@@ -32,10 +32,15 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
   const [weekOffset, setWeekOffset] = useState(0);
   const [posts, setPosts]           = useState<Post[]>([]);
 
+  // Search & filter states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<'all' | 'instagram' | 'tiktok' | 'youtube'>('all');
+
   const getWeekDays = () => {
     const now = new Date();
     const dayOfWeek = now.getDay();
     const monday = new Date(now);
+    // Adjust day of week (Monday as day 0)
     monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7) + weekOffset * 7);
     return Array.from({ length: 7 }, (_, i) => {
       const d = new Date(monday);
@@ -50,10 +55,11 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
   useEffect(() => {
     if (!clientId) { setPosts([]); return; }
     const supabase = createClient();
-    const start = weekDays[0];
+    const start = new Date(weekDays[0]);
     start.setHours(0, 0, 0, 0);
-    const end = weekDays[6];
+    const end = new Date(weekDays[6]);
     end.setHours(23, 59, 59, 999);
+    
     supabase
       .from('posts')
       .select('id, client_id, platform, title, caption, scheduled_for, status, created_at')
@@ -64,13 +70,28 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clientId, weekOffset]);
 
+  // Apply frontend search and platform filters
+  const filteredPosts = useMemo(() => {
+    return posts.filter((post) => {
+      if (platformFilter !== 'all' && post.platform !== platformFilter) return false;
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase().trim();
+        const matchTitle = post.title?.toLowerCase().includes(query);
+        const matchCaption = post.caption?.toLowerCase().includes(query);
+        if (!matchTitle && !matchCaption) return false;
+      }
+      return true;
+    });
+  }, [posts, platformFilter, searchQuery]);
+
   const getPostsForDayAndPlatform = (day: Date, platform: string) =>
-    posts.filter((post) => {
+    filteredPosts.filter((post) => {
       const d = new Date(post.scheduled_for);
       return (
         post.platform === platform &&
         d.getDate() === day.getDate() &&
-        d.getMonth() === day.getMonth()
+        d.getMonth() === day.getMonth() &&
+        d.getFullYear() === day.getFullYear()
       );
     });
 
@@ -81,6 +102,7 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
       className="rounded-2xl overflow-hidden"
       style={{ border: '1px solid rgba(10,15,28,0.08)', background: '#ffffff' }}
     >
+      {/* Calendar Header Navigation */}
       <div className="px-5 py-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(10,15,28,0.08)' }}>
         <div>
           <h3 className="text-sm font-bold" style={{ color: '#0A0F1C' }}>Calendario de contenido</h3>
@@ -89,21 +111,21 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
         <div className="flex items-center gap-2">
           <button
             onClick={() => setWeekOffset(weekOffset - 1)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(10,15,28,0.07)]"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(10,15,28,0.07)] cursor-pointer"
             style={{ color: '#0A0F1C' }}
           >
             <ChevronLeft size={14} />
           </button>
           <button
             onClick={() => setWeekOffset(0)}
-            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-[rgba(10,15,28,0.07)]"
+            className="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors hover:bg-[rgba(10,15,28,0.07)] cursor-pointer"
             style={{ color: '#0A0F1C' }}
           >
             Hoy
           </button>
           <button
             onClick={() => setWeekOffset(weekOffset + 1)}
-            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(10,15,28,0.07)]"
+            className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors hover:bg-[rgba(10,15,28,0.07)] cursor-pointer"
             style={{ color: '#0A0F1C' }}
           >
             <ChevronRight size={14} />
@@ -111,14 +133,42 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="px-5 py-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5" style={{ borderBottom: '1px solid rgba(10,15,28,0.06)', background: '#fafbfc' }}>
-        {Object.entries(STATUS_STYLES).map(([, s]) => (
-          <span key={s.label} className="flex items-center gap-1.5 text-[11px] font-medium" style={{ color: '#5A6B80' }}>
-            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.text }} />
-            {s.label}
-          </span>
-        ))}
+      {/* Filters Bar */}
+      <div className="px-5 py-2.5 flex flex-wrap items-center justify-between gap-3" style={{ borderBottom: '1px solid rgba(10,15,28,0.06)', background: '#F7F4EE' }}>
+        <div className="flex items-center gap-2 flex-grow sm:flex-grow-0">
+          <div className="relative flex items-center flex-grow sm:flex-grow-0">
+            <Search size={11} className="absolute left-2.5 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              placeholder="Buscar contenido..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="text-xs pl-7 pr-3 py-1.5 rounded-lg outline-none w-full sm:w-48 border bg-white"
+              style={{ borderColor: 'rgba(10,15,28,0.12)', color: '#334155' }}
+            />
+          </div>
+          <select
+            value={platformFilter}
+            onChange={(e) => setPlatformFilter(e.target.value as any)}
+            className="text-xs px-2.5 py-1.5 rounded-lg outline-none border bg-white cursor-pointer"
+            style={{ borderColor: 'rgba(10,15,28,0.12)', color: '#334155' }}
+          >
+            <option value="all">Todas las redes</option>
+            <option value="instagram">Instagram</option>
+            <option value="tiktok">TikTok</option>
+            <option value="youtube">YouTube</option>
+          </select>
+        </div>
+        
+        {/* Status Legends */}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {Object.entries(STATUS_STYLES).map(([key, s]) => (
+            <span key={key} className="flex items-center gap-1 text-[10px] font-bold" style={{ color: '#5A6B80' }}>
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: s.text }} />
+              {s.label}
+            </span>
+          ))}
+        </div>
       </div>
 
       <div className="overflow-x-auto">
@@ -180,7 +230,7 @@ export function ContentCalendar({ clientId, onPostClick, selectedPostId }: Conte
                               boxShadow: isSelected ? `0 0 0 2px ${status.text}` : undefined,
                             }}
                           >
-                            <div className="font-semibold leading-tight truncate">{post.title}</div>
+                            <div className="font-bold leading-tight truncate">{post.title}</div>
                             <div className="mt-0.5 font-medium opacity-80">{status.label}</div>
                           </div>
                         );
