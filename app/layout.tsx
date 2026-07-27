@@ -28,6 +28,14 @@ export const metadata: Metadata = {
   keywords: ['digital marketing', 'social media management', 'video editing', 'web development', 'instagram', 'tiktok', 'youtube'],
   authors: [{ name: 'Azu Digital Studio' }],
   creator: 'Azu Digital Studio',
+  icons: {
+    icon: [
+      { url: '/AZU.png', type: 'image/png' },
+      { url: '/favicon.ico' },
+    ],
+    shortcut: '/AZU.png',
+    apple: '/apple-touch-icon.png',
+  },
   openGraph: {
     type: 'website',
     siteName: 'Azu Digital Studio',
