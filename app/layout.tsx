@@ -21,13 +21,13 @@ const instrumentSans = Instrument_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL('https://azudigitalstudio.com'),
   title: {
-    default: 'Azu Digital Studio',
-    template: '%s | Azu Digital Studio',
+    default: 'AZU Digital Studio',
+    template: '%s | AZU Digital Studio',
   },
   description: 'Social media management, video editing and web development for entrepreneurs — in English, Spanish & Portuguese.',
   keywords: ['digital marketing', 'social media management', 'video editing', 'web development', 'instagram', 'tiktok', 'youtube'],
-  authors: [{ name: 'Azu Digital Studio' }],
-  creator: 'Azu Digital Studio',
+  authors: [{ name: 'AZU Digital Studio' }],
+  creator: 'AZU Digital Studio',
   icons: {
     icon: [
       { url: '/AZU.png', type: 'image/png' },
@@ -38,14 +38,14 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    siteName: 'Azu Digital Studio',
-    title: 'Azu Digital Studio — Your brand, amplified.',
+    siteName: 'AZU Digital Studio',
+    title: 'AZU Digital Studio',
     description: 'Social media management, video editing and web development for entrepreneurs — in English, Spanish & Portuguese.',
-    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'Azu Digital Studio' }],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'AZU Digital Studio' }],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Azu Digital Studio — Your brand, amplified.',
+    title: 'AZU Digital Studio',
     description: 'Social media management, video editing and web development for entrepreneurs.',
     images: ['/og-image.png'],
   },
