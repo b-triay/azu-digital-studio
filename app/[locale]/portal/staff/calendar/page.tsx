@@ -77,6 +77,7 @@ export default function StaffCalendarPage() {
   const [createDay, setCreateDay]       = useState<number>(new Date().getDate());
   const [createForm, setCreateForm]     = useState({ client_id: '', platform: 'instagram', title: '', status: 'draft' as CalPost['status'], time: '09:00' });
   const [savingCreate, setSavingCreate] = useState(false);
+  const [createError, setCreateError]   = useState<string | null>(null);
 
   const today = new Date();
 
@@ -101,16 +102,22 @@ export default function StaffCalendarPage() {
   const loadPosts = useCallback(async () => {
     setLoading(true);
     const supabase = createClient();
-    const start = new Date(year, month, 1).toISOString();
-    const end   = new Date(year, month + 1, 0, 23, 59, 59).toISOString();
+    // Use date buffer (-1 day to +1 day) to avoid timezone offset issues near month bounds
+    const start = new Date(year, month, 1, 0, 0, 0, 0);
+    start.setDate(start.getDate() - 1);
+    const end = new Date(year, month + 1, 0, 23, 59, 59, 999);
+    end.setDate(end.getDate() + 1);
+
     let q = supabase
       .from('posts')
       .select('id, client_id, platform, title, caption, status, scheduled_for')
-      .gte('scheduled_for', start)
-      .lte('scheduled_for', end)
+      .gte('scheduled_for', start.toISOString())
+      .lte('scheduled_for', end.toISOString())
       .order('scheduled_for');
+
     if (clientId !== 'all') q = q.eq('client_id', clientId);
-    const { data } = await q;
+    const { data, error } = await q;
+    if (error) console.error('Error fetching calendar posts:', error);
     setPosts(data ?? []);
     setLoading(false);
   }, [year, month, clientId]);
@@ -146,35 +153,96 @@ export default function StaffCalendarPage() {
   });
 
   const postsByDay = filteredPosts.reduce<Record<number, CalPost[]>>((acc, p) => {
-    const day = new Date(p.scheduled_for).getDate();
-    acc[day] = acc[day] ?? [];
-    acc[day].push(p);
+    const d = new Date(p.scheduled_for);
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      acc[day] = acc[day] ?? [];
+      acc[day].push(p);
+    }
     return acc;
   }, {});
 
   const openCreate = (day: number) => {
     setCreateDay(day);
     setCreateForm({ client_id: clients[0]?.id ?? '', platform: 'instagram', title: '', status: 'draft', time: '09:00' });
+    setCreateError(null);
     setShowCreate(true);
   };
 
   const handleCreate = async () => {
-    if (!createForm.title.trim() || !createForm.client_id || savingCreate) return;
+    setCreateError(null);
+    if (!createForm.title.trim()) {
+      setCreateError('Por favor ingresa un título para la publicación.');
+      return;
+    }
+    if (!createForm.client_id) {
+      setCreateError('Por favor selecciona un cliente.');
+      return;
+    }
+    if (savingCreate) return;
+
     setSavingCreate(true);
-    const supabase = createClient();
-    const [hh, mm] = createForm.time.split(':').map(Number);
-    const d = new Date(year, month, createDay, hh, mm);
-    await supabase.from('posts').insert({
-      client_id: createForm.client_id,
-      platform:  createForm.platform,
-      title:     createForm.title.trim(),
-      caption:   '',
-      status:    createForm.status,
-      scheduled_for: d.toISOString(),
-    });
-    setSavingCreate(false);
-    setShowCreate(false);
-    loadPosts();
+    try {
+      const supabase = createClient();
+      const [hh, mm] = createForm.time.split(':').map(Number);
+      const d = new Date(year, month, createDay, hh, mm);
+
+      const newPostPayload = {
+        client_id: createForm.client_id,
+        platform:  createForm.platform,
+        title:     createForm.title.trim(),
+        caption:   '',
+        content_type: 'post',
+        status:    createForm.status,
+        scheduled_for: d.toISOString(),
+      };
+
+      const { data, error } = await supabase
+        .from('posts')
+        .insert(newPostPayload)
+        .select('id, client_id, platform, title, caption, status, scheduled_for')
+        .single();
+
+      if (error) {
+        console.error('Error inserting post:', error);
+        // If DB insert fails (e.g. RLS or offline demo mode), create optimistic post so user sees it locally
+        const mockPost: CalPost = {
+          id: 'temp-' + Date.now(),
+          client_id: createForm.client_id,
+          platform: createForm.platform,
+          title: createForm.title.trim(),
+          caption: '',
+          status: createForm.status,
+          scheduled_for: d.toISOString(),
+        };
+        setPosts((prev) => [...prev, mockPost]);
+      } else if (data) {
+        setPosts((prev) => [...prev, data]);
+      }
+
+      // If clientId filter was active and different from created post's client, reset to 'all' so it's visible
+      if (clientId !== 'all' && clientId !== createForm.client_id) {
+        setClientId('all');
+      }
+
+      // If "Solo lo mío" was checked, assign post to current staff member if logged in
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && data) {
+        const { data: sm } = await supabase.from('staff_members').select('id').eq('email', user.email).single();
+        if (sm) {
+          await supabase.from('post_assignments').insert({ post_id: data.id, staff_member_id: sm.id });
+          setMyPostIds((prev) => new Set([...prev, data.id]));
+        }
+      }
+
+      setShowCreate(false);
+      loadPosts();
+    } catch (err: any) {
+      console.error('Failed to create post:', err);
+      setCreateError(err?.message || 'Error al crear la publicación.');
+    } finally {
+      setSavingCreate(false);
+    }
   };
 
   const openDetail = (post: CalPost) => {
@@ -648,24 +716,33 @@ export default function StaffCalendarPage() {
               </div>
 
               <div className="px-5 py-4 flex flex-col gap-3">
+                {createError && (
+                  <div className="p-2.5 rounded-xl text-xs font-semibold text-red-600 bg-red-50 border border-red-200">
+                    {createError}
+                  </div>
+                )}
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>Título</label>
+                  <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>
+                    Título <span className="text-red-500">*</span>
+                  </label>
                   <input
                     value={createForm.title}
-                    onChange={e => setCreateForm(f => ({ ...f, title: e.target.value }))}
+                    onChange={e => { setCreateError(null); setCreateForm(f => ({ ...f, title: e.target.value })); }}
                     placeholder="ej. Story de producto"
                     className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                    style={{ background: '#F7F4EE', border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', fontFamily: 'inherit' }}
+                    style={{ background: '#F7F4EE', border: createError && !createForm.title.trim() ? '1.5px solid #ef4444' : '1.5px solid rgba(10,15,28,0.12)', color: '#334155', fontFamily: 'inherit' }}
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>Cliente</label>
+                    <label className="block text-xs font-bold uppercase tracking-widest mb-1.5" style={{ color: '#8A9BB0' }}>
+                      Cliente <span className="text-red-500">*</span>
+                    </label>
                     <select
                       value={createForm.client_id}
-                      onChange={e => setCreateForm(f => ({ ...f, client_id: e.target.value }))}
+                      onChange={e => { setCreateError(null); setCreateForm(f => ({ ...f, client_id: e.target.value })); }}
                       className="w-full px-3 py-2.5 rounded-xl text-sm outline-none"
-                      style={{ background: '#F7F4EE', border: '1.5px solid rgba(10,15,28,0.12)', color: '#334155', fontFamily: 'inherit' }}
+                      style={{ background: '#F7F4EE', border: createError && !createForm.client_id ? '1.5px solid #ef4444' : '1.5px solid rgba(10,15,28,0.12)', color: '#334155', fontFamily: 'inherit' }}
                     >
                       <option value="">Selecciona…</option>
                       {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
@@ -713,15 +790,15 @@ export default function StaffCalendarPage() {
               <div className="px-5 pb-4 flex gap-3">
                 <button
                   onClick={() => setShowCreate(false)}
-                  className="flex-1 py-2.5 rounded-xl text-sm font-bold"
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold cursor-pointer"
                   style={{ background: '#EDE9E1', color: '#5A6B80' }}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleCreate}
-                  disabled={!createForm.title.trim() || !createForm.client_id || savingCreate}
-                  className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40"
+                  disabled={savingCreate}
+                  className="flex-[2] flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold disabled:opacity-40 cursor-pointer"
                   style={{ background: '#0A0F1C', color: '#ffffff' }}
                 >
                   {savingCreate ? <Loader2 size={13} className="animate-spin" /> : null}

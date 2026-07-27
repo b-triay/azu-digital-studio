@@ -108,10 +108,10 @@ export function Navbar() {
             {/* Portal button */}
             <Link
               href={`/${locale}/portal/login`}
-              className="text-sm font-semibold px-4 py-2 rounded-lg border transition-all duration-150 hover:border-[#B8976C] hover:text-[#B8976C]"
+              className="text-sm font-semibold px-4 py-2 rounded-xl border transition-all duration-200 hover:border-[#004CFF] hover:text-[#004CFF] hover:bg-[#004CFF]/5"
               style={{
-                color: scrolled ? '#0A0F1C' : '#F7F4EE',
-                borderColor: scrolled ? 'rgba(10,15,28,0.25)' : 'rgba(247,244,238,0.4)',
+                color: scrolled ? '#0A0F1C' : '#FFFFFF',
+                borderColor: scrolled ? 'rgba(10,15,28,0.25)' : 'rgba(255,255,255,0.4)',
                 background: 'transparent',
               }}
             >

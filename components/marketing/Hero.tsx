@@ -65,15 +65,15 @@ export function Hero() {
         >
           {t('headline')}
           <br />
-          <span className="italic" style={{ color: '#B8976C' }}>
+          <span className="italic bg-gradient-to-r from-[#7AB2F3] to-[#004CFF] bg-clip-text text-transparent">
             {t('headlineAccent')}
           </span>
         </motion.h1>
 
-        {/* Brass rule */}
+        {/* Accent rule */}
         <motion.div
           className="mx-auto mt-8 h-px"
-          style={{ background: '#B8976C', originX: 0.5 }}
+          style={{ background: 'linear-gradient(90deg, transparent, #004CFF, #7AB2F3, transparent)', originX: 0.5 }}
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
           transition={{ duration: 0.7, delay: 0.95, ease: [0.22, 1, 0.36, 1] }}
@@ -84,7 +84,7 @@ export function Hero() {
         {/* Subheadline */}
         <motion.p
           className="mt-8 max-w-lg mx-auto text-lg font-normal leading-relaxed"
-          style={{ color: '#8A9BB0' }}
+          style={{ color: '#94A3B8' }}
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -101,10 +101,10 @@ export function Hero() {
         >
           <button
             onClick={() => scrollTo('contact')}
-            className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:gap-3.5 cursor-pointer"
+            className="group inline-flex items-center gap-2.5 px-7 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 hover:gap-3.5 cursor-pointer shadow-lg shadow-[#004CFF]/25"
             style={{
-              background: '#F7F4EE',
-              color: '#0A0F1C',
+              background: '#004CFF',
+              color: '#FFFFFF',
             }}
           >
             {t('ctaPrimary')}
@@ -113,19 +113,19 @@ export function Hero() {
 
           <button
             onClick={() => scrollTo('portfolio')}
-            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-lg text-sm font-semibold transition-all duration-200 cursor-pointer"
+            className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer"
             style={{
-              color: '#F7F4EE',
-              border: '1px solid rgba(247,244,238,0.25)',
-              background: 'transparent',
+              color: '#FFFFFF',
+              border: '1px solid rgba(255,255,255,0.25)',
+              background: 'rgba(255,255,255,0.05)',
             }}
             onMouseEnter={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = '#B8976C';
-              (e.currentTarget as HTMLButtonElement).style.color = '#B8976C';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = '#7AB2F3';
+              (e.currentTarget as HTMLButtonElement).style.color = '#7AB2F3';
             }}
             onMouseLeave={e => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(247,244,238,0.25)';
-              (e.currentTarget as HTMLButtonElement).style.color = '#F7F4EE';
+              (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(255,255,255,0.25)';
+              (e.currentTarget as HTMLButtonElement).style.color = '#FFFFFF';
             }}
           >
             {t('ctaSecondary')}
@@ -142,7 +142,7 @@ export function Hero() {
       >
         <motion.div
           className="w-px h-14"
-          style={{ background: 'linear-gradient(to bottom, transparent, #B8976C)' }}
+          style={{ background: 'linear-gradient(to bottom, transparent, #004CFF)' }}
           animate={{ scaleY: [0.4, 1, 0.4] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
         />

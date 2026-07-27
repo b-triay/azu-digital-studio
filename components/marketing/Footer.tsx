@@ -52,8 +52,8 @@ export function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-sm font-medium transition-colors hover:text-[#B8976C]"
-                style={{ color: 'rgba(215,224,231,0.5)' }}
+                className="text-sm font-medium transition-colors hover:text-[#7AB2F3]"
+                style={{ color: 'rgba(215,224,231,0.6)' }}
               >
                 {link.label}
               </Link>
