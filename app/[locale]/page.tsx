@@ -10,9 +10,9 @@ import { CTASection } from '@/components/marketing/CTASection';
 import { Footer } from '@/components/marketing/Footer';
 
 const TITLES: Record<string, string> = {
-  en: 'Azu Digital Studio — Your brand, amplified.',
-  es: 'Azu Digital Studio — Tu marca, amplificada.',
-  pt: 'Azu Digital Studio — Sua marca, amplificada.',
+  en: 'AZU Digital Studio',
+  es: 'AZU Digital Studio',
+  pt: 'AZU Digital Studio',
 };
 
 const DESCRIPTIONS: Record<string, string> = {
@@ -29,13 +29,14 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const { locale } = await params;
-  const title = TITLES[locale] ?? TITLES.en;
   const description = DESCRIPTIONS[locale] ?? DESCRIPTIONS.en;
   return {
-    title,
+    title: {
+      absolute: 'AZU Digital Studio',
+    },
     description,
     openGraph: {
-      title,
+      title: 'AZU Digital Studio',
       description,
       locale: OG_LOCALES[locale] ?? 'en_US',
       alternateLocale: Object.values(OG_LOCALES).filter((l) => l !== OG_LOCALES[locale]),
