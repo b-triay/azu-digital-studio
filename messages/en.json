@@ -520,7 +520,7 @@
       "subtitle": "Everything you need to know about our service and workflow.",
       "items": {
         "q1": "How does the monthly service work?",
-        "a1": "We work on a monthly subscription basis. Each plan includes a defined quantity of deliverables (video editing, design, posts, etc.). We use Notion to coordinate the content calendar and Supabase for the approvals portal.",
+        "a1": "We work on a monthly subscription basis. Each plan includes a defined quantity of deliverables (video editing, design, posts, etc.). We use our dedicated portal to coordinate the content calendar and approvals.",
         "q2": "What payment methods are accepted?",
         "a2": "We accept local ACH transfers for US clients (processed through ARQ/DolarApp with $0 processing fee), international credit/debit card payments via Takenos (5% + $0.50 fee), and Argentine peso payments via Mercado Pago to avoid local tax surcharges.",
         "q3": "How does the approvals portal work?",
@@ -528,7 +528,9 @@
         "q4": "Can I change my plan or cancel at any time?",
         "a4": "Yes, absolutely. You can request to change plans or cancel your subscription by writing directly to our support before your next monthly billing date. There are no long-term contracts or hidden fees.",
         "q5": "What happens if I don't use all the deliverables in my plan during the month?",
-        "a5": "Deliverables included in each monthly billing cycle are non-cumulative. This allows us to guarantee the availability of our editors and designers dedicated exclusively to your brand."
+        "a5": "Deliverables included in each monthly billing cycle are non-cumulative. This allows us to guarantee the availability of our editors and designers dedicated exclusively to your brand.",
+        "q6": "How long does the first delivery take after onboarding?",
+        "a6": "After the onboarding meeting and receiving your brand assets or brief, we deliver the first batch of optimized content ready for your review within 3 to 5 business days."
       }
     }
   }

@@ -16,6 +16,7 @@ export function FAQ() {
     { q: t('items.q3'), a: t('items.a3') },
     { q: t('items.q4'), a: t('items.a4') },
     { q: t('items.q5'), a: t('items.a5') },
+    { q: t('items.q6'), a: t('items.a6') },
   ];
 
   const handleToggle = (index: number) => {
@@ -23,19 +24,19 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" className="py-24 lg:py-32" style={{ background: '#F7F4EE' }}>
+    <section id="faq" className="py-24 lg:py-32" style={{ background: '#F8FAFC' }}>
       <div className="max-w-4xl mx-auto px-6 lg:px-8">
         {/* Header */}
         <FadeIn className="text-center max-w-2xl mx-auto mb-16">
           <div className="flex items-center justify-center gap-4 mb-6">
-            <div className="h-px w-10" style={{ background: '#B8976C' }} />
+            <div className="h-px w-10 bg-gradient-to-r from-transparent to-[#004CFF]" />
             <span
-              className="text-xs tracking-widest uppercase font-medium"
-              style={{ color: '#B8976C' }}
+              className="text-xs tracking-widest uppercase font-bold px-3 py-1 rounded-full"
+              style={{ color: '#004CFF', background: 'rgba(0,76,255,0.08)' }}
             >
               FAQ
             </span>
-            <div className="h-px w-10" style={{ background: '#B8976C' }} />
+            <div className="h-px w-10 bg-gradient-to-l from-transparent to-[#004CFF]" />
           </div>
           <h2
             className="text-4xl lg:text-5xl font-light tracking-tight"
@@ -43,7 +44,7 @@ export function FAQ() {
           >
             {t('title')}
           </h2>
-          <p className="mt-4 text-base font-normal leading-relaxed" style={{ color: '#5A6B80' }}>
+          <p className="mt-4 text-base font-normal leading-relaxed" style={{ color: '#64748B' }}>
             {t('subtitle')}
           </p>
         </FadeIn>
@@ -58,8 +59,8 @@ export function FAQ() {
                 className="rounded-2xl overflow-hidden transition-all duration-300"
                 style={{
                   background: '#ffffff',
-                  border: '1px solid rgba(10,15,28,0.06)',
-                  boxShadow: isOpen ? '0 10px 30px rgba(10,15,28,0.04)' : '0 2px 8px rgba(10,15,28,0.02)',
+                  border: isOpen ? '1px solid rgba(0,76,255,0.3)' : '1px solid rgba(10,15,28,0.06)',
+                  boxShadow: isOpen ? '0 12px 32px rgba(0,76,255,0.08)' : '0 2px 8px rgba(10,15,28,0.02)',
                 }}
                 initial={{ opacity: 0, y: 15 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -68,15 +69,15 @@ export function FAQ() {
               >
                 <button
                   onClick={() => handleToggle(index)}
-                  className="w-full flex items-center justify-between gap-4 p-5 sm:p-6 text-left transition-colors duration-150 hover:bg-slate-50/50 cursor-pointer"
+                  className="w-full flex items-center justify-between gap-4 p-5 sm:p-6 text-left transition-colors duration-150 hover:bg-slate-50/80 cursor-pointer"
                 >
-                  <div className="flex gap-3 items-start min-w-0">
+                  <div className="flex gap-3.5 items-start min-w-0">
                     <HelpCircle
-                      size={18}
-                      className="flex-shrink-0 mt-0.5 transition-colors"
-                      style={{ color: isOpen ? '#B8976C' : '#8A9BB0' }}
+                      size={19}
+                      className="flex-shrink-0 mt-0.5 transition-colors duration-200"
+                      style={{ color: isOpen ? '#004CFF' : '#94A3B8' }}
                     />
-                    <span className="text-sm sm:text-base font-bold" style={{ color: '#0A0F1C' }}>
+                    <span className="text-sm sm:text-base font-bold" style={{ color: isOpen ? '#004CFF' : '#0A0F1C' }}>
                       {item.q}
                     </span>
                   </div>
@@ -85,7 +86,7 @@ export function FAQ() {
                     transition={{ duration: 0.25, ease: 'easeInOut' }}
                     className="flex-shrink-0"
                   >
-                    <ChevronDown size={18} style={{ color: isOpen ? '#0A0F1C' : '#5A6B80' }} />
+                    <ChevronDown size={18} style={{ color: isOpen ? '#004CFF' : '#64748B' }} />
                   </motion.div>
                 </button>
 
@@ -99,9 +100,9 @@ export function FAQ() {
                     >
                       <div
                         className="px-5 pb-5 sm:px-6 sm:pb-6 text-xs sm:text-sm leading-relaxed"
-                        style={{ color: '#5A6B80', borderTop: '1px solid rgba(10,15,28,0.04)' }}
+                        style={{ color: '#475569', borderTop: '1px solid rgba(0,76,255,0.06)' }}
                       >
-                        <p className="pl-0 sm:pl-7 pt-3">{item.a}</p>
+                        <p className="pl-0 sm:pl-8 pt-3">{item.a}</p>
                       </div>
                     </motion.div>
                   )}

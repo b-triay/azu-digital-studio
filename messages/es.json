@@ -520,7 +520,7 @@
       "subtitle": "Todo lo que necesitas saber sobre nuestro servicio y flujo de trabajo.",
       "items": {
         "q1": "¿Cómo funciona el servicio mensual?",
-        "a1": "Trabajamos en base a suscripciones mensuales. Cada plan incluye una cantidad definida de entregables (edición de video, diseño, posts, etc.). Usamos Notion para coordinar el calendario de contenido y Supabase para el portal de aprobaciones.",
+        "a1": "Trabajamos en base a suscripciones mensuales. Cada plan incluye una cantidad definida de entregables (edición de video, diseño, posts, etc.). Usamos nuestro portal exclusivo para coordinar el calendario de contenido y la revisión de aprobaciones.",
         "q2": "¿Cuáles son los medios de pago aceptados?",
         "a2": "Aceptamos transferencias ACH locales para clientes de EE. UU. (procesado mediante ARQ/DolarApp sin recargo de comisión), pagos con tarjeta de crédito/débito internacionales a través de Takenos (comisión del 5% + $0.50), y pagos en pesos argentinos vía Mercado Pago para evitar recargos impositivos locales.",
         "q3": "¿Cómo funciona el portal de aprobaciones?",
@@ -528,7 +528,9 @@
         "q4": "¿Puedo cambiar de plan o cancelar en cualquier momento?",
         "a4": "Sí, totalmente. Puedes solicitar cambiar de plan o cancelar tu suscripción escribiendo directamente a nuestro soporte antes de tu próxima fecha de facturación mensual. No hay contratos a largo plazo ni cargos ocultos.",
         "q5": "¿Qué pasa si no consumo todos los entregables de mi plan en el mes?",
-        "a5": "Los entregables incluidos en cada ciclo de facturación mensual no son acumulables. Esto nos permite garantizar la disponibilidad de nuestros editores y diseñadores de forma dedicada para tu marca."
+        "a5": "Los entregables incluidos en cada ciclo de facturación mensual no son acumulables. Esto nos permite garantizar la disponibilidad de nuestros editores y diseñadores de forma dedicada para tu marca.",
+        "q6": "¿Cuánto tiempo tarda la primera entrega tras la reunión inicial?",
+        "a6": "Luego de la sesión de onboarding y tras recibir tu material o brief de marca, entregamos la primera tanda de contenidos optimizados listos para tu revisión en 3 a 5 días hábiles."
       }
     }
   }
